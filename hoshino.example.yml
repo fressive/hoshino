@@ -1,0 +1,45 @@
+# Copyright 2025 Rina
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     https://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# The address of the server
+address: "127.0.0.1"
+
+# The database driver
+driver: "sqlite"
+
+# The DSN of the database
+dsn: ""
+
+# The secret key, used to generate the JWT token
+secret: "takanashi_hoshino_is_kawaii"
+
+smtp:
+  # The SMTP server host
+  host: "smtp.example.com"
+  # The SMTP server port
+  port: 587
+  # The SMTP server username
+  username: ""
+  # The SMTP server password
+  password: ""
+
+agents:
+  - name: "local" 
+    # The name must be equal to the DNS in the certificate
+    address: "127.0.0.1"
+    port: 1271
+    token: "takanashi_hoshino_is_super_kawaii"
+    weight: 1
+    cert_file: "certs/server.pem"
+

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{.Title}}</title>
+    <style>
+        body {
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 40px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background-color: #f3bec6;
+            color: #ffffff;
+            padding: 10px 0;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            margin: 40px 10px;
+        }
+        .footer {
+            text-align: center;
+            color: #888888;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        .code {
+            font-family: "consolas", sans-serif;
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #f4f4f4;
+            border: 1px solid #dddddd;
+            border-radius: 4px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{{ .Title }}</h1>
+        </div>
+        <div class="content">
+            <p><b>Hello {{ .Nickname }},</b></p>
+            <p>Thank you for registering {{ .SiteName}}! Your email verification code is: </p>
+            <p class="code">{{ .Code }}</p>
+            <p><b>The code will be expired in 5 minutes.</b> Please enter the code in the panel ASAP.</p>
+            <br>
+            <p><i>If you did not initiate a request to verify your email, this message can be disregarded. </i></p>
+            <br>
+            <br>
+        </div>
+        <div class="footer">
+            <p>&copy; 2025 {{ .SiteName }}. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
