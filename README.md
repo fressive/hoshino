@@ -8,7 +8,7 @@ This repository is the backend server of Hoshino.
 
 > [!WARNING]
 >
-> Hoshino is under fast-development now and **the stability is not guaranteed at this stage.**  Please open an [issue](https://github.com/fressive/Hoshino/issues/new/choose) when you encounter bugs or find some security problems.
+> Hoshino is under fast-development now and **the stability is not guaranteed at this stage.**  Please open an [issue](https://github.com/fressive/hoshino-backend/issues/new/choose) when you encounter bugs or find some security problems.
 
 
 
