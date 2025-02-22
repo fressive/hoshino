@@ -62,6 +62,13 @@ var (
 					}
 					return smtp
 				}(),
+				CORS: func() config.CORS {
+					var cors config.CORS
+					if err := viper.UnmarshalKey("cors", &cors); err != nil {
+						panic(err)
+					}
+					return cors
+				}(),
 				Agents: func() []config.Agent {
 					var agents []config.Agent
 					if err := viper.UnmarshalKey("agents", &agents); err != nil {
@@ -69,6 +76,7 @@ var (
 					}
 					return agents
 				}(),
+
 				Version: version.Version,
 			}
 

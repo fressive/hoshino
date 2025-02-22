@@ -45,6 +45,9 @@ type Config struct {
 	// The SMTP configuration
 	SMTP SMTP `json:"smtp" mapstructure:"smtp"`
 
+	// The CORS configuration
+	CORS CORS `json:"cors" mapstructure:"cors"`
+
 	// The container services
 	Agents []Agent `json:"agents" mapstructure:"agents"`
 }
@@ -65,6 +68,10 @@ type SMTP struct {
 	Port     int    `json:"port" mapstructure:"port"`
 	Username string `json:"username" mapstructure:"username"`
 	Password string `json:"password" mapstructure:"password"`
+}
+
+type CORS struct {
+	AllowOrigins []string `json:"allow_origins" mapstructure:"allow_origins"`
 }
 
 func (c *Config) IsDev() bool {

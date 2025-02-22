@@ -47,6 +47,10 @@ func registerRouter(s *Server) {
 	g := e.Group("/api/v1")
 	// Rate limitin
 	g.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(rate.Limit(20))))
+	// CORS
+	g.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: c.CORS.AllowOrigins,
+	}))
 	// Body limitin
 	g.Use(middleware.BodyLimitWithConfig(
 		middleware.BodyLimitConfig{
