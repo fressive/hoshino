@@ -75,6 +75,7 @@ func registerRouter(s *Server) {
 	userApi.POST("/register", v1.UserRegister).Name = "user-register"
 	userApi.POST("/login", v1.UserLogin).Name = "user-login"
 	userApi.POST("/username/check", v1.CheckUsername).Name = "check-username"
+	userApi.POST("/email/check", v1.CheckEmail).Name = "check-email"
 	userApi.POST("/email/verify", v1.EmailVerify).Name = "verify-email"
 	userApi.GET("/email/resend", v1.ResendVerificationEmail).Name = "resend-email"
 

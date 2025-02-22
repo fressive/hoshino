@@ -56,7 +56,7 @@ var (
 )
 
 func validateUsername(username string) bool {
-	// the username must contain only letters, numbers, and underscores
+	// the username can contain only letters, numbers, and underscores
 	// and must be between 4 and 16 characters long
 
 	matched, err := username_regex.MatchString(username)
@@ -277,6 +277,22 @@ func CheckUsername(c echo.Context) error {
 
 	if ctx.Store.UsernameExist(username) {
 		return Failed(&c, "Username already exists")
+	} else {
+		return OK(&c)
+	}
+}
+
+func CheckEmail(c echo.Context) error {
+	ctx := c.(*context.CustomContext)
+
+	email := c.FormValue("email")
+
+	if !validateEmail(ctx.Store, email) {
+		return Failed(&c, "Invalid email")
+	}
+
+	if ctx.Store.EmailExist(email) {
+		return Failed(&c, "Email already exists")
 	} else {
 		return OK(&c)
 	}
