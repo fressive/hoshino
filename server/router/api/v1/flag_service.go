@@ -56,7 +56,7 @@ func anticheatCheck(_ *echo.Context, s *store.Store,
 
 		if flag.Team.ID != team.ID {
 			event := store.GameEvent{
-				Content:      fmt.Sprintf("Team %s shared the flag %s with team %s", team.Name, flag.Flag, flag.Team.Name),
+				Content:      fmt.Sprintf("Team `%s` shared the flag `%s` with team `%s`", team.Name, flag.Flag, flag.Team.Name),
 				Game:         challenge.Game,
 				Challenge:    challenge,
 				RelatedTeams: []*store.Team{team, flag.Team},
@@ -85,7 +85,7 @@ func anticheatCheck(_ *echo.Context, s *store.Store,
 		if fake == flag {
 
 			event := store.GameEvent{
-				Content:      fmt.Sprintf("Team %s submitted a fake flag %s", team.Name, flag),
+				Content:      fmt.Sprintf("Team `%s` submitted a fake flag `%s`", team.Name, flag),
 				Game:         challenge.Game,
 				Challenge:    challenge,
 				RelatedTeams: []*store.Team{team},
@@ -146,6 +146,20 @@ func SubmitFlag(c echo.Context) error {
 		return Failed(&c, "Failed to submit the flag")
 	}
 
+	if !challenge.DynamicFlag {
+		// static flag case, create a flag first
+		// Create a new flag object here
+		f := store.Flag{
+			Challenge: challenge,
+			Team:      team,
+			Flag:      challenge.Flag,
+			State:     store.FlagUnsolved,
+			SolvedAt:  time.Now().Unix(),
+		}
+
+		ctx.Store.CreateFlag(&f)
+	}
+
 	// get the specified flag object by challenge and team, for there may be fixed flag cases
 	storedFlag, err := ctx.Store.GetFlagByChallengeAndTeam(challenge, team)
 
@@ -154,27 +168,8 @@ func SubmitFlag(c echo.Context) error {
 	}
 
 	if storedFlag.State > store.FlagUnsolved {
+		// state in [solved, cheated]
 		return Failed(&c, "Flag has already been solved")
-	}
-
-	if !challenge.DynamicFlag {
-		// static flag case
-
-		if challenge.Flag != payload.Flag {
-			return Failed(&c, "Flag is incorrect")
-		}
-
-		// Create a new flag object here
-		f := store.Flag{
-			Challenge: challenge,
-			Team:      team,
-			Flag:      payload.Flag,
-			State:     store.FlagSolved,
-			SolvedAt:  time.Now().Unix(),
-		}
-
-		ctx.Store.CreateFlag(&f)
-		return OK(&c)
 	}
 
 	// anti-cheat
@@ -187,18 +182,19 @@ func SubmitFlag(c echo.Context) error {
 			return Failed(&c, "Cheat detected")
 		}
 		// don't return if auto-ban is disabled
-		// and caculate the score normally
+		// and calculate the score normally
 		// let admins decide whether to ban the team later
 	}
 
 	if storedFlag.Flag == payload.Flag {
 		if storedFlag.State == store.FlagUnsolved {
+			// we'll not update the flag state if it was cheated
 			storedFlag.State = store.FlagSolved
 		}
 
 		storedFlag.SolvedAt = time.Now().Unix()
 
-		// TODO: caculate the score of the flag for some game modes
+		// TODO: calculate the score of the flag for some game modes
 		if !storedFlag.Challenge.Expired() {
 			if storedFlag.Challenge.ScoreMode == store.ScoreModeStatic {
 				// only set the score when the flag is static

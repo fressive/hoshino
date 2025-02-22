@@ -97,7 +97,7 @@ type Challenge struct {
 	// Dynamic flag or not
 	DynamicFlag bool `gorm:"default:false" json:"dynamic_flag"`
 
-	// Flag of the challenge (if not dynamic)
+	// Flag template of the challenge
 	Flag string `json:"flag"`
 
 	// Score of the challenge (if not dynamic)

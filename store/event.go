@@ -34,10 +34,12 @@ type GameEvent struct {
 	Content string `gorm:"type:text" json:"content"`
 
 	// Game of this event
-	Game *Game `gorm:"foreignKey:id" json:"game"`
+	GameID uint  `json:"game_id"`
+	Game   *Game `gorm:"foreignKey:GameID" json:"game"`
 
 	// Challenge of this event
-	Challenge *Challenge `gorm:"foreignKey:id" json:"challenge"`
+	ChallengeID uint       `json:"challenge_id"`
+	Challenge   *Challenge `gorm:"foreignKey:ChallengeID" json:"challenge"`
 
 	// Related teams of this event
 	RelatedTeams []*Team `gorm:"many2many:event_teams;" json:"related_teams"`
@@ -63,8 +65,8 @@ func (s *Store) DeleteGameEvent(event *GameEvent) error {
 	return s.db.Delete(event).Error
 }
 
-func (s *Store) GetAllGameEvents(visibility bool) ([]GameEvent, error) {
-	var events []GameEvent
+func (s *Store) GetAllGameEvents(visibility bool) ([]*GameEvent, error) {
+	var events []*GameEvent
 	err := s.db.Where("visibility = ?", visibility).Find(&events).Error
 	return events, err
 }
