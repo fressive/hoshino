@@ -52,6 +52,7 @@ type (
 
 var (
 	username_regex, _ = regexp2.Compile(`^[a-zA-Z0-9_]{4,16}$`, 0)
+	email_regex, _    = regexp2.Compile(`^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})$`, 0)
 	password_regex, _ = regexp2.Compile(`^(?:(?=.*[A-Z])(?=.*[a-z])(?=.*\d)|(?=.*[A-Z])(?=.*[a-z])(?=.*[^\w\s])|(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s])|(?=.*[a-z])(?=.*\d)(?=.*[^\w\s])).{8,}$`, 0)
 )
 
@@ -86,14 +87,21 @@ func validatePassword(password string) bool {
 func validateEmail(store *store.Store, email string) bool {
 	// the email must match the regex stored in the database
 
-	email_regex, err := store.GetSetting("email_regex")
+	// to ensure that a valid email address is provided first
+	matched, err := email_regex.MatchString(email)
 
 	if err != nil {
-		slog.Error(fmt.Sprintf("Failed to get email regex from store, error: %v", err))
+		slog.Error(fmt.Sprintf("Failed to match email regex, error: %v", err))
 		return false
 	}
 
-	matched, err := regexp.MatchString(cast.ToString(email_regex.Value), email)
+	if !matched {
+		return false
+	}
+
+	email_regex := store.GetSettingString("email_regex")
+
+	matched, err = regexp.MatchString(cast.ToString(email_regex), email)
 	if err != nil {
 		slog.Error(fmt.Sprintf("Failed to match email regex, error: %v", err))
 		return false
