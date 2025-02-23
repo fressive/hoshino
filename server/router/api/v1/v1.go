@@ -32,7 +32,7 @@ func OKWithData(c *echo.Context, data any) error {
 }
 
 func Failed(c *echo.Context, errorMessage string) error {
-	return (*c).JSON(http.StatusBadRequest, map[string]any{"message": errorMessage, "status": "error", "result": false})
+	return (*c).JSON(http.StatusOK, map[string]any{"message": errorMessage, "status": "error", "result": false})
 }
 
 func ServerError(c *echo.Context, errorMessage string) error {
