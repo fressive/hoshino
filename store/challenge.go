@@ -126,6 +126,12 @@ func (s *Store) CreateChallenge(challenge *Challenge) error {
 	return s.db.Create(challenge).Error
 }
 
+func (s *Store) GetChallenges() ([]*Challenge, error) {
+	var challenges []*Challenge
+	err := s.db.Preload("Game").Preload("Creator").Preload("Attachments").Find(&challenges).Error
+	return challenges, err
+}
+
 func (s *Store) GetChallengeByID(id int) (*Challenge, error) {
 	var challenge Challenge
 	err := s.db.First(&challenge, id).Error

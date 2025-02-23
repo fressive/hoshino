@@ -151,9 +151,20 @@ func UserLogin(c echo.Context) error {
 		Name:    "token",
 		Value:   t,
 		Expires: time.Now().Add(time.Hour * 72),
+		Domain: func() string {
+			if ctx.Config.IsDev() {
+				return "*"
+			}
+			return ctx.Store.GetSettingString("site_domain")
+		}(),
 	})
 
-	return OK(&c)
+	user.EmailVerified = ctx.Store.GetSettingBool("need_email_verify") && user.EmailVerified
+
+	return OKWithData(&c, map[string]any{
+		"token": t,
+		"user":  user,
+	})
 }
 
 func EmailVerify(c echo.Context) error {
@@ -169,12 +180,12 @@ func EmailVerify(c echo.Context) error {
 		return Failed(&c, "Email has already verified")
 	}
 
-	if time.Now().Unix() > user.EmailVerificationCodeExpire {
-		return Failed(&c, "Verification code has expired")
-	}
-
 	if user.EmailVerificationCode != payload.Code {
 		return Failed(&c, "Invalid verification code")
+	}
+
+	if time.Now().Unix() > user.EmailVerificationCodeExpire {
+		return Failed(&c, "Verification code has expired")
 	}
 
 	user.EmailVerified = true
@@ -183,7 +194,7 @@ func EmailVerify(c echo.Context) error {
 	return OK(&c)
 }
 
-func ResendVerificationEmail(c echo.Context) error {
+func SendVerificationEmail(c echo.Context) error {
 	ctx := c.(*context.CustomContext)
 
 	user, _ := GetUserFromToken(&c)
@@ -211,11 +222,24 @@ func ResendVerificationEmail(c echo.Context) error {
 	return OK(&c)
 }
 
+func AllowRegister(c echo.Context) error {
+	ctx := c.(*context.CustomContext)
+
+	if !ctx.Store.GetSettingBool("allow_register") {
+		return Failed(&c, "Registration is not allowed")
+	}
+
+	return OK(&c)
+}
+
 func UserRegister(c echo.Context) error {
 	ctx := c.(*context.CustomContext)
 	reg := new(RegisterPayload)
 
 	// TODO: Captcha verification
+	if !ctx.Store.GetSettingBool("allow_register") {
+		return Failed(&c, "Registration is not allowed")
+	}
 
 	if err := c.Bind(reg); err != nil {
 		slog.Debug(err.Error())
@@ -249,6 +273,7 @@ func UserRegister(c echo.Context) error {
 	salt := util.GenerateRandomText(16)
 
 	user := store.User{
+		UUID:           util.UUID(),
 		Username:       reg.Username,
 		Nickname:       reg.Nickname,
 		Password:       string(util.SHA256WithSalt(reg.Password, salt)),
@@ -261,13 +286,14 @@ func UserRegister(c echo.Context) error {
 		LastLoginTime:  time.Now().Unix(),
 	}
 
-	if ctx.Store.GetSettingBool("need_email_verify") {
-		code := fmt.Sprintf("%s{%s}", ctx.Store.GetSettingString("flag_prefix"), util.UUID())
-		user.EmailVerificationCode = code
-		user.EmailVerificationCodeExpire = time.Now().Add(time.Minute * 5).Unix()
-		user.EmailVerificationCodeLastSent = time.Now().Unix()
-		util.SendVerificationEmail(ctx.Store, user.Email, user.Nickname, code)
-	}
+	// not to send verification email this time
+	// if ctx.Store.GetSettingBool("need_email_verify") {
+	// 	code := fmt.Sprintf("%s{%s}", ctx.Store.GetSettingString("flag_prefix"), util.UUID())
+	// 	user.EmailVerificationCode = code
+	// 	user.EmailVerificationCodeExpire = time.Now().Add(time.Minute * 5).Unix()
+	// 	user.EmailVerificationCodeLastSent = time.Now().Unix()
+	// 	util.SendVerificationEmail(ctx.Store, user.Email, user.Nickname, code)
+	// }
 
 	ctx.Store.CreateUser(user)
 
@@ -304,4 +330,13 @@ func CheckEmail(c echo.Context) error {
 	} else {
 		return OK(&c)
 	}
+}
+
+func GetUserInfo(c echo.Context) error {
+	ctx := c.(*context.CustomContext)
+	user, _ := GetUserFromToken(&c)
+
+	user.EmailVerified = ctx.Store.GetSettingBool("need_email_verify") && user.EmailVerified
+
+	return OKWithData(&c, user)
 }

@@ -51,7 +51,15 @@ func GetGames(c echo.Context) error {
 	// Get all games
 	user, _ := GetUserFromToken(&c)
 
-	if games, err := ctx.Store.GetGames(); err != nil {
+	var games []*store.Game
+	var err error
+
+	if user.HasPrivilege(store.UserPrivilegeAdministrator) {
+		games, err = ctx.Store.GetGames()
+	} else {
+		games, err = ctx.Store.GetGamesWithoutSecrets()
+	}
+	if err != nil {
 		return Failed(&c, "Unable to fetch games")
 	} else {
 		filtered := make([]*store.Game, 0)

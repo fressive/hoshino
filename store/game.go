@@ -93,6 +93,12 @@ func (s *Store) GetGames() ([]*Game, error) {
 	return games, err
 }
 
+func (s *Store) GetGamesWithoutSecrets() ([]*Game, error) {
+	var games []*Game
+	err := s.db.Preload("Creator").Preload("Managers").Preload("Teams").Preload("Challenges").Preload("Categories").Select("id", "uuid", "name", "description", "status", "visibility", "start_time", "end_time", "max_team_size", "creator_id").Find(&games).Error
+	return games, err
+}
+
 func (s *Store) GetGameByUUID(uuid string) (*Game, error) {
 	var game Game
 	err := s.db.Preload("Creator").Preload("Managers").Preload("Teams").Preload("Challenges").Preload("Categories").Where("uuid = ?", uuid).First(&game).Error

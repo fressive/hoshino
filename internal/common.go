@@ -16,7 +16,7 @@ package internal
 
 var DefaultSettings = map[string]string{
 	"site_name":      "HoshinoCTF",
-	"site_url":       "https://hoshino.rina.icu",
+	"site_domain":    "hoshino.rina.icu",
 	"site_desc":      "HoshinoCTF - A Lightweight CTF platform",
 	"allow_register": "true",
 

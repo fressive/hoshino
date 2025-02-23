@@ -49,7 +49,8 @@ func registerRouter(s *Server) {
 	g.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(rate.Limit(20))))
 	// CORS
 	g.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: c.CORS.AllowOrigins,
+		AllowOrigins:     c.CORS.AllowOrigins,
+		AllowCredentials: true,
 	}))
 	// Body limitin
 	g.Use(middleware.BodyLimitWithConfig(
@@ -76,12 +77,14 @@ func registerRouter(s *Server) {
 
 	// User APIs
 	userApi := g.Group("/user")
+	userApi.GET("", v1.GetUserInfo).Name = "get-user-info"
 	userApi.POST("/register", v1.UserRegister).Name = "user-register"
+	userApi.GET("/register/check", v1.AllowRegister).Name = "check-register"
 	userApi.POST("/login", v1.UserLogin).Name = "user-login"
 	userApi.POST("/username/check", v1.CheckUsername).Name = "check-username"
 	userApi.POST("/email/check", v1.CheckEmail).Name = "check-email"
 	userApi.POST("/email/verify", v1.EmailVerify).Name = "verify-email"
-	userApi.GET("/email/resend", v1.ResendVerificationEmail).Name = "resend-email"
+	userApi.POST("/email/send", v1.SendVerificationEmail).Name = "send-email"
 
 	// Container APIs
 	containersApi := g.Group("/container")

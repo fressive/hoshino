@@ -15,13 +15,16 @@
 package router
 
 func RequireLogin(path string) bool {
-	return path != "/api/v1/user/login" &&
+	return (path != "/api/v1/user/login" &&
+		path != "/api/v1/user/register/check" &&
 		path != "/api/v1/user/register" &&
 		path != "/api/v1/user/username/check" &&
-		path != "/api/v1/user/email/check"
+		path != "/api/v1/user/email/check")
 }
 
 func RequireEmailVerified(path string) bool {
-	return (path != "/api/v1/user/email/verify" && path != "/api/v1/user/email/resend") &&
-		RequireLogin(path)
+	return (path != "/api/v1/user/email/verify" &&
+		path != "/api/v1/user/email/send" &&
+		path != "/api/v1/user" &&
+		RequireLogin(path))
 }

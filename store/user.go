@@ -31,46 +31,48 @@ const (
 )
 
 type User struct {
-	gorm.Model
+	gorm.Model `json:"-"` // ID, CreatedAt, UpdatedAt, DeletedAt
+
+	UUID string `gorm:"unique;not null" json:"uuid"`
 
 	// Username
-	Username string `gorm:"unique;not null"`
+	Username string `gorm:"unique;not null" json:"username"`
 
 	// Nickname
-	Nickname string `gorm:"not null"`
+	Nickname string `gorm:"not null" json:"nickname"`
 
 	// SHA256ed Password
-	Password string `gorm:"not null"`
+	Password string `gorm:"not null" json:"-"`
 
 	// Salt
-	Salt string `gorm:"not null"`
+	Salt string `gorm:"not null" json:"-"`
 
 	// Email
-	Email string `gorm:"unique;not null"`
+	Email string `gorm:"unique;not null" json:"email"`
 
 	// Is Email Verified
-	EmailVerified bool `gorm:"not null"`
+	EmailVerified bool `gorm:"not null" json:"email_verified"`
 
 	// Email Verification Code
-	EmailVerificationCode string
+	EmailVerificationCode string `json:"-"`
 
 	// Email Verification Code Last Sent
-	EmailVerificationCodeLastSent int64
+	EmailVerificationCodeLastSent int64 `json:"-"`
 
 	// Email Verification Code Expire
-	EmailVerificationCodeExpire int64
+	EmailVerificationCodeExpire int64 `json:"-"`
 
 	// Privilege
-	Privilege UserPrivilege `gorm:"not null"`
+	Privilege UserPrivilege `gorm:"not null" json:"privilege"`
 
 	// Registration IP
-	RegistrationIP string `gorm:"not null"`
+	RegistrationIP string `gorm:"not null" json:"registration_ip"`
 
 	// Last Login IP
-	LastLoginIP string `gorm:"not null"`
+	LastLoginIP string `gorm:"not null" json:"last_login_ip"`
 
 	// Last Login Time
-	LastLoginTime int64 `gorm:"not null"`
+	LastLoginTime int64 `gorm:"not null" json:"last_login_time"`
 }
 
 func (s *Store) CreateUser(user User) error {
