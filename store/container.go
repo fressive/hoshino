@@ -35,7 +35,7 @@ type Container struct {
 	UUID       string          `gorm:"unique"`
 	Status     ContainerStatus `gorm:"default:0"`
 	ExpireTime int64           `gorm:"default:0"`
-	Agent      string          `gorm:"default:''"`
+	Agent      string          `gorm:"default:''" priv:"2"`
 
 	// The number of times the container can be renewed
 	LeftRenewalTimes int `gorm:"default:0"`

@@ -37,6 +37,10 @@ func CreateCategory(c echo.Context) error {
 		return Failed(&c, "Unable to fetch game")
 	}
 
+	if !(game.IsManager(user) || user.HasPrivilege(store.UserPrivilegeAdministrator)) {
+		return PermissionDenied(&c)
+	}
+
 	var payload CreateCategoryPayload
 	if err := c.Bind(&payload); err != nil {
 		return Failed(&c, "Invalid payload")

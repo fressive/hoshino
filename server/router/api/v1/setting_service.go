@@ -32,7 +32,7 @@ func UpdateSetting(c echo.Context) error {
 	user, _ := GetUserFromToken(&c)
 	// We can get the user successfully cuz the middleware has verified the token
 	if user.Privilege != store.UserPrivilegeHost {
-		return Unauthorized(&c)
+		return PermissionDenied(&c)
 	}
 
 	var req UpdateSettingRequest
@@ -50,7 +50,7 @@ func GetSetting(c echo.Context) error {
 
 	user, _ := GetUserFromToken(&c)
 	if user.Privilege != store.UserPrivilegeHost {
-		return Unauthorized(&c)
+		return PermissionDenied(&c)
 	}
 
 	setting, _ := ctx.Store.GetSetting(c.Param("key"))
@@ -67,7 +67,7 @@ func GetAllSettings(c echo.Context) error {
 
 	user, _ := GetUserFromToken(&c)
 	if user.Privilege != store.UserPrivilegeHost {
-		return Unauthorized(&c)
+		return PermissionDenied(&c)
 	}
 
 	settings, _ := ctx.Store.GetAllSettings()

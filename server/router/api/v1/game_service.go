@@ -54,11 +54,8 @@ func GetGames(c echo.Context) error {
 	var games []*store.Game
 	var err error
 
-	if user.HasPrivilege(store.UserPrivilegeAdministrator) {
-		games, err = ctx.Store.GetGames()
-	} else {
-		games, err = ctx.Store.GetGamesWithoutSecrets()
-	}
+	games, err = ctx.Store.GetGames()
+
 	if err != nil {
 		return Failed(&c, "Unable to fetch games")
 	} else {
@@ -78,7 +75,7 @@ func CreateGame(c echo.Context) error {
 	user, _ := GetUserFromToken(&c)
 
 	if !user.HasPrivilege(store.UserPrivilegeAdministrator) {
-		return Unauthorized(&c)
+		return PermissionDenied(&c)
 	}
 
 	var payload CreateGamePayload

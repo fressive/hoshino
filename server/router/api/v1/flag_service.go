@@ -121,7 +121,7 @@ func SubmitFlag(c echo.Context) error {
 	user, _ := GetUserFromToken(&c)
 	if user.Privilege < store.UserPrivilegeNormal {
 		// make sure that the user has the privilege to submit flags
-		return Unauthorized(&c)
+		return PermissionDenied(&c)
 	}
 
 	team, err := ctx.Store.GetTeamByUUID(payload.TeamUUID)

@@ -49,7 +49,7 @@ const (
 )
 
 type Challenge struct {
-	gorm.Model
+	gorm.Model `json:"-"`
 
 	// Name of the challenge
 	Name string `gorm:"unique" json:"name"`
@@ -89,16 +89,16 @@ type Challenge struct {
 	AfterExpiredOperations AfterExpireOp `gorm:"default:0" json:"after_expired_operations"`
 
 	// docker-compose.yml of the challenge
-	DockerComposeFile string `gorm:"type:text" json:"docker_compose_file"`
+	DockerComposeFile string `gorm:"type:text" json:"docker_compose_file" priv:"2"`
 
 	// Does the challenge need a container
 	NoContainer bool `gorm:"default:false" json:"no_container"`
 
 	// Dynamic flag or not
-	DynamicFlag bool `gorm:"default:false" json:"dynamic_flag"`
+	DynamicFlag bool `gorm:"default:false" json:"dynamic_flag" priv:"2"`
 
 	// Flag template of the challenge
-	Flag string `json:"flag"`
+	Flag string `json:"flag" priv:"2"`
 
 	// Score of the challenge (if not dynamic)
 	Score int `gorm:"default:0" json:"score"`
@@ -111,11 +111,11 @@ type Challenge struct {
 	//
 	// Parameters:
 	// original_score, solved_count, solved_order
-	ScoreFormula string `gorm:"type:text" json:"score_formula"`
+	ScoreFormula string `gorm:"type:text" json:"score_formula" priv:"2"`
 
 	// Fake flags of the challenge
 	// Set for anti-cheat
-	FakeFlag types.StringArray `gorm:"type:text" json:"fake_flag"`
+	FakeFlag types.StringArray `gorm:"type:text" json:"fake_flag" priv:"2"`
 
 	// Hints of the challenge
 	// Markdown supported

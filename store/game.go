@@ -15,6 +15,8 @@
 package store
 
 import (
+	"slices"
+
 	"gorm.io/gorm"
 )
 
@@ -26,7 +28,7 @@ const (
 )
 
 type Game struct {
-	gorm.Model
+	gorm.Model `json:"-"`
 
 	// UUID of the game
 	UUID string `gorm:"unique" json:"uuid"`
@@ -60,9 +62,6 @@ type Game struct {
 	// The managers of the game
 	Managers []*User `gorm:"many2many:game_managers;" json:"managers"`
 
-	// The players of the game
-	Teams []*Team `gorm:"many2many:game_teams;" json:"teams"`
-
 	// Enable the change of member during the game
 	EnableChangeMember bool `gorm:"default:false" json:"enable_change_member"`
 
@@ -73,10 +72,10 @@ type Game struct {
 	Categories []*Category `gorm:"many2many:game_categories;" json:"categories"`
 
 	// Flag prefix of the game
-	FlagPrefix string `gorm:"default:flag" json:"flag_prefix"`
+	FlagPrefix string `gorm:"default:flag" json:"flag_prefix" priv:"2"`
 
 	// Auto ban the team when cheating
-	AutoBan bool `gorm:"default:false" json:"auto_ban"`
+	AutoBan bool `gorm:"default:false" json:"auto_ban" priv:"2"`
 }
 
 func (s *Store) CreateGame(game *Game) error {
@@ -89,29 +88,18 @@ func (s *Store) UpdateGame(game *Game) error {
 
 func (s *Store) GetGames() ([]*Game, error) {
 	var games []*Game
-	err := s.db.Preload("Creator").Preload("Managers").Preload("Teams").Preload("Challenges").Preload("Categories").Find(&games).Error
-	return games, err
-}
-
-func (s *Store) GetGamesWithoutSecrets() ([]*Game, error) {
-	var games []*Game
-	err := s.db.Preload("Creator").Preload("Managers").Preload("Teams").Preload("Challenges").Preload("Categories").Select("id", "uuid", "name", "description", "status", "visibility", "start_time", "end_time", "max_team_size", "creator_id").Find(&games).Error
+	err := s.db.Preload("Creator").Preload("Managers").Preload("Challenges").Preload("Categories").Find(&games).Error
 	return games, err
 }
 
 func (s *Store) GetGameByUUID(uuid string) (*Game, error) {
 	var game Game
-	err := s.db.Preload("Creator").Preload("Managers").Preload("Teams").Preload("Challenges").Preload("Categories").Where("uuid = ?", uuid).First(&game).Error
+	err := s.db.Preload("Creator").Preload("Managers").Preload("Challenges").Preload("Categories").Where("uuid = ?", uuid).First(&game).Error
 	return &game, err
 }
 
-func (g *Game) IsManager(user *User) bool {
-	for _, manager := range g.Managers {
-		if manager.ID == user.ID {
-			return true
-		}
-	}
-	return false
+func (g Game) IsManager(user *User) bool {
+	return slices.Contains(g.Managers, user)
 }
 
 func (g *Game) GetCategories() []string {
@@ -122,12 +110,27 @@ func (g *Game) GetCategories() []string {
 	return categories
 }
 
-func (g *Game) GetChallenges(withInvisible bool) []Challenge {
-	var challenges []Challenge
+func (g *Game) GetChallenges(withInvisible bool) []*Challenge {
+	var challenges []*Challenge
 	for _, challenge := range g.Challenges {
 		if withInvisible || challenge.State == ChallengeStateVisible {
-			challenges = append(challenges, *challenge)
+			challenges = append(challenges, challenge)
 		}
 	}
 	return challenges
+}
+
+func (g *Game) GetTeams(s *Store) []*Team {
+	var teams []*Team
+	s.db.Model(Team{}).Preload("Members").Preload("Managers").Where("game_id = ?", g.ID).Find(&teams)
+	return teams
+}
+
+func (g *Game) GetTeamByUser(s *Store, user *User) *Team {
+	for _, team := range g.GetTeams(s) {
+		if team.HasMember(user) {
+			return team
+		}
+	}
+	return nil
 }

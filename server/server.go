@@ -104,6 +104,7 @@ func registerRouter(s *Server) {
 
 	// Team APIs
 	teamApi := gameApi.Group("/:game_uuid/team")
+	teamApi.GET("", v1.GetUserTeamIngame).Name = "get-user-team-ingame"
 	// teamApi.GET("", v1.GetTeams).Name = "get-teams"
 	// teamApi.GET("/:uuid", v1.GetTeam).Name = "get-team"
 	teamApi.POST("/create", v1.CreateTeam).Name = "create-team"
@@ -117,8 +118,8 @@ func registerRouter(s *Server) {
 
 	// Challenge APIs
 	challengeApi := gameApi.Group("/:game_uuid/challenge")
-	challengeApi.GET("", v1.GetChallenges).Name = "get-challenges"
-	challengeApi.GET("/:challenge_uuid", v1.GetChallenge).Name = "get-challenge"
+	challengeApi.GET("", v1.GetFullChallenges).Name = "get-challenges"
+	challengeApi.GET("/:challenge_uuid", v1.GetFullChallenge).Name = "get-challenge"
 	challengeApi.POST("/create", v1.CreateChallenge).Name = "create-challenge"
 	challengeApi.POST("/:challenge_uuid/flag", v1.SubmitFlag).Name = "submit-flag"
 	challengeApi.POST("/:challenge_uuid/container/create", v1.CreateContainer).Name = "create-challenge-container"
@@ -137,7 +138,15 @@ func NewServer(ctx context.Context, config *config.Config) (*Server, error) {
 	echoServer.HideBanner = true
 	echoServer.HidePort = true
 
-	echoServer.Use(middleware.Recover())
+	echoServer.Use(middleware.RecoverWithConfig(
+		middleware.RecoverConfig{
+			LogErrorFunc: middleware.LogErrorFunc(func(c echo.Context, err error, stack []byte) error {
+				slog.Error(fmt.Sprintf("Error: %v\nStack: %v", err, string(stack)))
+				return err
+			}),
+		},
+	))
+
 	if config.IsDev() {
 		echoServer.Use(middleware.Logger())
 	}

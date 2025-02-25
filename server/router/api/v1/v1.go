@@ -28,7 +28,15 @@ func OK(c *echo.Context) error {
 }
 
 func OKWithData(c *echo.Context, data any) error {
-	return (*c).JSON(http.StatusOK, map[string]any{"message": "OK", "status": "success", "result": true, "data": data})
+	ctx := (*c).(*context.CustomContext)
+	user, _ := GetUserFromToken(c)
+
+	return (*c).JSON(http.StatusOK, map[string]any{
+		"message": "OK",
+		"status":  "success",
+		"result":  true,
+		"data":    store.FilterFieldsByPrivilege(data, user.UserPriv(ctx.Store)), // Filter the fields based on the user's privilege
+	})
 }
 
 func Failed(c *echo.Context, errorMessage string) error {
@@ -37,6 +45,10 @@ func Failed(c *echo.Context, errorMessage string) error {
 
 func ServerError(c *echo.Context, errorMessage string) error {
 	return (*c).JSON(http.StatusInternalServerError, map[string]any{"message": errorMessage, "status": "error", "result": false})
+}
+
+func PermissionDenied(c *echo.Context) error {
+	return (*c).JSON(http.StatusOK, map[string]any{"message": "Permission Denied", "status": "error", "result": false})
 }
 
 func Unauthorized(c *echo.Context) error {

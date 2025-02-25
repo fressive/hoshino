@@ -25,6 +25,26 @@ type CreateTeamRequest struct {
 	Name string `json:"name"`
 }
 
+func GetUserTeamIngame(c echo.Context) error {
+	ctx := c.(*context.CustomContext)
+
+	user, _ := GetUserFromToken(&c)
+	game, err := ctx.Store.GetGameByUUID(ctx.Param("game_uuid"))
+	if err != nil || !(game.Visibility || user.HasPrivilege(store.UserPrivilegeAdministrator) || game.IsManager(user)) {
+		return Failed(&c, "Unable to fetch game")
+	}
+
+	team := game.GetTeamByUser(ctx.Store, user)
+
+	if team == nil {
+		return Failed(&c, "You are not in a team")
+	}
+
+	return OKWithData(&c,
+		team,
+	)
+}
+
 func CreateTeam(c echo.Context) error {
 	ctx := c.(*context.CustomContext)
 
@@ -35,11 +55,11 @@ func CreateTeam(c echo.Context) error {
 
 	user, _ := GetUserFromToken(&c)
 	game, err := ctx.Store.GetGameByUUID(ctx.Param("game_uuid"))
-	if err != nil {
-		return Failed(&c, "Invalid game")
+	if err != nil || !(game.Visibility || user.HasPrivilege(store.UserPrivilegeAdministrator) || game.IsManager(user)) {
+		return Failed(&c, "Unable to fetch game")
 	}
 
-	if user.IsInTeam(game) {
+	if user.IsInTeam(ctx.Store, game) {
 		return Failed(&c, "You are already in a team")
 	}
 

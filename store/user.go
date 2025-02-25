@@ -51,28 +51,28 @@ type User struct {
 	Email string `gorm:"unique;not null" json:"email"`
 
 	// Is Email Verified
-	EmailVerified bool `gorm:"not null" json:"email_verified"`
+	EmailVerified bool `gorm:"not null" json:"email_verified" priv:"2"`
 
 	// Email Verification Code
-	EmailVerificationCode string `json:"-"`
+	EmailVerificationCode string `json:"-" priv:"3"`
 
 	// Email Verification Code Last Sent
-	EmailVerificationCodeLastSent int64 `json:"-"`
+	EmailVerificationCodeLastSent int64 `json:"-" priv:"3"`
 
 	// Email Verification Code Expire
-	EmailVerificationCodeExpire int64 `json:"-"`
+	EmailVerificationCodeExpire int64 `json:"-" priv:"3"`
 
 	// Privilege
 	Privilege UserPrivilege `gorm:"not null" json:"privilege"`
 
 	// Registration IP
-	RegistrationIP string `gorm:"not null" json:"registration_ip"`
+	RegistrationIP string `gorm:"not null" json:"registration_ip" priv:"2"`
 
 	// Last Login IP
-	LastLoginIP string `gorm:"not null" json:"last_login_ip"`
+	LastLoginIP string `gorm:"not null" json:"last_login_ip" priv:"2"`
 
 	// Last Login Time
-	LastLoginTime int64 `gorm:"not null" json:"last_login_time"`
+	LastLoginTime int64 `gorm:"not null" json:"last_login_time" priv:"2"`
 }
 
 func (s *Store) CreateUser(user User) error {
@@ -144,8 +144,8 @@ func (user *User) HasPrivilege(privilege UserPrivilege) bool {
 	return user.Privilege >= privilege
 }
 
-func (user *User) IsInTeam(game *Game) bool {
-	for _, team := range game.Teams {
+func (user *User) IsInTeam(s *Store, game *Game) bool {
+	for _, team := range game.GetTeams(s) {
 		for _, member := range team.Members {
 			if member.ID == user.ID {
 				return true

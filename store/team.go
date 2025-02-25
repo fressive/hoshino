@@ -34,25 +34,25 @@ func (e *TeamError) Error() string {
 }
 
 type Team struct {
-	gorm.Model
+	gorm.Model `json:"-"`
 
-	Name string `gorm:"unique"`
-	UUID string `gorm:"unique"`
+	Name string `json:"name"`
+	UUID string `gorm:"unique" json:"uuid"`
 
 	// The team is under a game
-	GameID uint  `gorm:"not null"`
-	Game   *Game `gorm:"foreignKey:GameID"`
+	GameID uint  `gorm:"not null" json:"-"`
+	Game   *Game `gorm:"foreignKey:GameID" json:"game"`
 
 	// Is the team banned
-	Banned bool `gorm:"default:false"`
+	Banned bool `gorm:"default:false" json:"banned"`
 
 	// The creator of the team
-	CreatorID uint  `gorm:"not null"`
-	Creator   *User `gorm:"foreignKey:CreatorID"`
+	CreatorID uint  `gorm:"not null" json:"-"`
+	Creator   *User `gorm:"foreignKey:CreatorID" json:"creator"`
 
 	// The managers and members of the team
-	Managers []*User `gorm:"many2many:team_managers;"`
-	Members  []*User `gorm:"many2many:team_members;"`
+	Managers []*User `gorm:"many2many:team_managers;" json:"managers"`
+	Members  []*User `gorm:"many2many:team_members;" json:"members"`
 }
 
 func (s *Store) CreateTeam(t *Team) error {
@@ -72,7 +72,7 @@ func (t *Team) HasMember(user *User) bool {
 	return false
 }
 
-func (t *Team) AddMember(db *gorm.DB, user *User) error {
+func (t *Team) AddMember(s *Store, user *User) error {
 	if t.Banned {
 		return TeamBannedError
 	}
@@ -85,13 +85,11 @@ func (t *Team) AddMember(db *gorm.DB, user *User) error {
 		return TeamFullError
 	}
 
-	for _, team := range t.Game.Teams {
-		if team.HasMember(user) {
-			return MemberInAnotherTeamError
-		}
+	if user.IsInTeam(s, t.Game) {
+		return MemberInAnotherTeamError
 	}
 
-	return db.Model(t).Association("Members").Append(&user)
+	return s.db.Model(t).Association("Members").Append(&user)
 }
 
 func (t *Team) RemoveMember(db *gorm.DB, user *User) error {

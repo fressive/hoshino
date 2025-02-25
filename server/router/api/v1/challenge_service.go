@@ -50,8 +50,8 @@ func CreateChallenge(c echo.Context) error {
 		return Failed(&c, "Unable to fetch game")
 	}
 
-	if !game.IsManager(user) {
-		return Unauthorized(&c)
+	if !game.IsManager(user) || !user.HasPrivilege(store.UserPrivilegeAdministrator) {
+		return PermissionDenied(&c)
 	}
 
 	var payload CreateChallengePayload
@@ -100,7 +100,7 @@ func CreateChallenge(c echo.Context) error {
 	return OKWithData(&c, uuid)
 }
 
-func GetChallenge(c echo.Context) error {
+func GetFullChallenge(c echo.Context) error {
 	ctx := c.(*context.CustomContext)
 	user, _ := GetUserFromToken(&c)
 
@@ -111,13 +111,13 @@ func GetChallenge(c echo.Context) error {
 	}
 
 	if !challenge.Game.Visibility && !user.HasPrivilege(store.UserPrivilegeAdministrator) && !challenge.Game.IsManager(user) {
-		return Unauthorized(&c)
+		return PermissionDenied(&c)
 	}
 
 	return OKWithData(&c, challenge)
 }
 
-func GetChallenges(c echo.Context) error {
+func GetFullChallenges(c echo.Context) error {
 	ctx := c.(*context.CustomContext)
 	user, _ := GetUserFromToken(&c)
 
@@ -128,7 +128,7 @@ func GetChallenges(c echo.Context) error {
 	}
 
 	if !game.Visibility && !user.HasPrivilege(store.UserPrivilegeAdministrator) && !game.IsManager(user) {
-		return Unauthorized(&c)
+		return PermissionDenied(&c)
 	}
 
 	return OKWithData(&c, game.Challenges)
