@@ -1,16 +1,21 @@
 # Hoshino
 
-![Hoshino Logo](.art/hoshino.svg)
+<p style="margin: 50px 50px;">
+    <img src=".art/hoshino.svg"/>
+</p>
 
 
-![GitHub License](https://img.shields.io/github/license/fressive/hoshino)
-![GitHub commit activity](https://img.shields.io/github/commit-activity/w/fressive/hoshino)
-
+<p align="center">
+    <img src="https://img.shields.io/github/license/fressive/hoshino" alt="GitHub License"/>
+    <img src="https://img.shields.io/github/commit-activity/w/fressive/hoshino" alt="GitHub commit activity"/>
+    <img src="https://img.shields.io/github/go-mod/go-version/fressive/hoshino" alt="GitHub go.mod Go version"/>
+    <img src="https://img.shields.io/github/actions/workflow/status/fressive/hoshino/go.yml" alt="GitHub Actions Workflow Status"/>
+</p>
 
 
 **Hoshino** is a lightweight CTF platform. 
 
-This repository (hoshino-backend) is the backend server of Hoshino.
+This repository (fressive/hoshino) is the backend server code of Hoshino.
 
 
 > [!WARNING]
