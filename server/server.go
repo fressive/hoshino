@@ -27,6 +27,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"rina.icu/hoshino/internal/k8s"
+	"rina.icu/hoshino/plugins/cron"
 	"rina.icu/hoshino/server/config"
 	cc "rina.icu/hoshino/server/context"
 	hmw "rina.icu/hoshino/server/middleware"
@@ -152,25 +153,28 @@ func NewServer(ctx context.Context, config *config.Config, clientSet *kubernetes
 	if config.IsDev() {
 		echoServer.Use(middleware.Logger())
 	}
-	echoServer.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			ctx := &cc.CustomContext{
-				Context: c,
-				Config:  s.config,
-				Store:   s.store,
-				ContainerManager: &k8s.ContainerManager{
-					K8SClient: s.k8sClient,
-					Store:     s.store,
-				},
-			}
-			return next(ctx)
-		}
-	})
 
 	s.echoServer = echoServer
 	s.k8sClient = clientSet
 
 	store, err := store.GetStore(config)
+
+	containerManager := &k8s.ContainerManager{
+		K8SClient: clientSet,
+		Store:     store,
+	}
+
+	echoServer.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			ctx := &cc.CustomContext{
+				Context:          c,
+				Config:           s.config,
+				Store:            s.store,
+				ContainerManager: containerManager,
+			}
+			return next(ctx)
+		}
+	})
 
 	if err != nil {
 		slog.Error("Failed to connect to database")
@@ -178,6 +182,10 @@ func NewServer(ctx context.Context, config *config.Config, clientSet *kubernetes
 	}
 
 	s.store = store
+
+	// Cron
+
+	cron.InitContainerCron(store, containerManager)
 
 	registerRouter(s)
 

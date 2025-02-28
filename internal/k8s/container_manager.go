@@ -22,6 +22,7 @@ import (
 	appv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
@@ -35,7 +36,7 @@ type ContainerManager struct {
 	Store     *store.Store
 }
 
-func (cm *ContainerManager) CreateChallengeContainer(c *store.Challenge, u *store.User, flag string) (string, error) {
+func (cm *ContainerManager) CreateChallengeContainer(c *store.Challenge, u *store.User, flag string, store *store.Store) (string, error) {
 	hash := util.SHA256(c.UUID + u.UUID)[:16]
 	name := "container-" + hash
 	// Create a container in k8s
@@ -66,11 +67,18 @@ func (cm *ContainerManager) CreateChallengeContainer(c *store.Challenge, u *stor
 					Containers: []v1.Container{
 						{
 							Name:  "challenge",
-							Image: c.Image,
+							Image: c.Image.Name,
 							Env: []v1.EnvVar{
 								{
 									Name:  "HOSHINO_FLAG",
 									Value: flag,
+								},
+							},
+							Resources: v1.ResourceRequirements{
+								Limits: v1.ResourceList{
+									v1.ResourceCPU:                    resource.MustParse(c.Image.CPULimit),
+									v1.ResourceMemory:                 resource.MustParse(c.Image.MemoryLimit),
+									v1.ResourceLimitsEphemeralStorage: resource.MustParse(c.Image.StorageLimit),
 								},
 							},
 						},
@@ -134,7 +142,7 @@ func (cm *ContainerManager) CreateChallengeContainer(c *store.Challenge, u *stor
 		Spec: networkingv1.IngressSpec{
 			Rules: []networkingv1.IngressRule{
 				{
-					Host: fmt.Sprintf("%s.%s", containerUUID, "node1.hoshino.rina.icu"),
+					Host: fmt.Sprintf("%s.%s", containerUUID, store.GetSettingString("node_domain")),
 					IngressRuleValue: networkingv1.IngressRuleValue{
 						HTTP: &networkingv1.HTTPIngressRuleValue{
 							Paths: []networkingv1.HTTPIngressPath{
@@ -168,7 +176,7 @@ func (cm *ContainerManager) CreateChallengeContainer(c *store.Challenge, u *stor
 	return containerUUID, nil
 }
 
-func (cm *ContainerManager) DeleteChallengeContainer(c *store.Challenge, u *store.User) {
+func (cm *ContainerManager) DisposeChallengeContainer(c *store.Challenge, u *store.User) error {
 	hash := util.SHA256(c.UUID + u.UUID)[:16]
 	name := "container-" + hash
 	// Delete a container in k8s
@@ -176,20 +184,22 @@ func (cm *ContainerManager) DeleteChallengeContainer(c *store.Challenge, u *stor
 	if err != nil {
 		// handle error
 		slog.Error(err.Error())
-		return
+		return err
 	}
 
 	err = cm.K8SClient.CoreV1().Services("challenge-containers").Delete(context.Background(), name+"-service", metav1.DeleteOptions{})
 	if err != nil {
 		// handle error
 		slog.Error(err.Error())
-		return
+		return err
 	}
 
 	err = cm.K8SClient.NetworkingV1().Ingresses("challenge-containers").Delete(context.Background(), name+"-ingress", metav1.DeleteOptions{})
 	if err != nil {
 		// handle error
 		slog.Error(err.Error())
-		return
+		return err
 	}
+
+	return nil
 }

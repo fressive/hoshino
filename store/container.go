@@ -15,6 +15,8 @@
 package store
 
 import (
+	"time"
+
 	"github.com/spf13/cast"
 	"gorm.io/gorm"
 )
@@ -60,18 +62,20 @@ func (s *Store) CreateContainer(c *Container) error {
 
 func (s *Store) GetContainerByUUID(uuid string) (*Container, error) {
 	var c Container
-
 	err := s.db.Where("uuid = ?", uuid).First(&c).Error
-
 	return &c, err
 }
 
 func (s *Store) GetContainerByChallengeAndUser(c *Challenge, u *User) (*Container, error) {
 	var container Container
-
-	err := s.db.Where("creator_id = ? AND challenge_id = ?", u.ID, c.ID).First(&container).Error
-
+	err := s.db.Where("creator_id = ? AND challenge_id = ?", u.ID, c.ID).Order("expire_time desc").First(&container).Error
 	return &container, err
+}
+
+func (s *Store) GetExpiredRunningContainers() ([]*Container, error) {
+	var containers []*Container
+	err := s.db.Preload("Creator").Preload("Challenge").Where("expire_time < ? AND status = 1", time.Now().Unix()).Find(&containers).Error
+	return containers, err
 }
 
 func (s *Store) UpdateContainer(c *Container) error {

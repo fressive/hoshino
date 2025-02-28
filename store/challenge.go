@@ -91,7 +91,8 @@ type Challenge struct {
 	AfterExpiredOperations AfterExpireOp `gorm:"default:0" json:"after_expired_operations"`
 
 	// Image of the challenge
-	Image string `gorm:"type:text" json:"image" priv:"2"`
+	ImageID uint   `json:"-"`
+	Image   *Image `gorm:"foreignKey:ImageID" json:"image"`
 
 	// Exposed port of the challenge
 	ExposedPort int `gorm:"default:0" json:"exposed_port"`

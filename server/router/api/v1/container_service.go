@@ -60,10 +60,9 @@ func CreateContainer(c echo.Context) error {
 		return Failed(&c, "You have reached the maximum number of containers.")
 	}
 
-	// TODO: create container here
 	slog.Info("Creating container for challenge %s", slog.Any("challenge", challenge))
 
-	uuid, err := ctx.ContainerManager.CreateChallengeContainer(challenge, user, flag)
+	uuid, err := ctx.ContainerManager.CreateChallengeContainer(challenge, user, flag, ctx.Store)
 	containerModel := &store.Container{
 		Creator:          user,
 		Challenge:        challenge,
@@ -118,7 +117,7 @@ func DisposeContainer(c echo.Context) error {
 		return Failed(&c, "Container is not running")
 	}
 
-	ctx.ContainerManager.DeleteChallengeContainer(challenge, user)
+	ctx.ContainerManager.DisposeChallengeContainer(challenge, user)
 	container.Status = store.ContainerStatusStopped
 	ctx.Store.UpdateContainer(container)
 

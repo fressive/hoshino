@@ -29,16 +29,22 @@ type CreateChallengePayload struct {
 	Tags                []string `json:"tags"`
 	ExpireTime          int64    `json:"expire_time" validate:"required"`
 	AfterExpiredOptions int32    `json:"after_expired_options" validate:"required"`
-	Image               string   `json:"image"`
-	ExposedPort         int      `json:"exposed_port"`
-	NoContainer         bool     `json:"no_container"`
-	DynamicFlag         bool     `json:"dynamic_flag"`
-	Flag                string   `json:"flag"`
-	Score               int      `json:"score"`
-	ScoreMode           int      `json:"score_mode"`
-	ScoreFormula        string   `json:"score_formula"`
-	FakeFlag            []string `json:"fake_flag"`
-	Hints               []string `json:"hints"`
+
+	Image                   string `json:"image"`
+	MemoryLimit             string `json:"memory_limit"`
+	CPULimit                string `json:"cpu_limit"`
+	StorageLimit            string `json:"storage_limit"`
+	ExposedPort             int    `json:"exposed_port"`
+	RegistryAccessTokenUUID string `json:"registry_access_token"`
+
+	NoContainer  bool     `json:"no_container"`
+	DynamicFlag  bool     `json:"dynamic_flag"`
+	Flag         string   `json:"flag"`
+	Score        int      `json:"score"`
+	ScoreMode    int      `json:"score_mode"`
+	ScoreFormula string   `json:"score_formula"`
+	FakeFlag     []string `json:"fake_flag"`
+	Hints        []string `json:"hints"`
 }
 
 func CreateChallenge(c echo.Context) error {
@@ -73,26 +79,27 @@ func CreateChallenge(c echo.Context) error {
 		Tags:                   payload.Tags,
 		ExpireTime:             payload.ExpireTime,
 		AfterExpiredOperations: store.AfterExpireOp(payload.AfterExpiredOptions),
-		Image:                  payload.Image,
-		ExposedPort:            payload.ExposedPort,
-		NoContainer:            payload.NoContainer,
-		DynamicFlag:            payload.DynamicFlag,
-		Flag:                   payload.Flag,
-		Score:                  payload.Score,
-		ScoreMode:              store.ScoreMode(payload.ScoreMode),
-		ScoreFormula:           payload.ScoreFormula,
-		FakeFlag:               payload.FakeFlag,
-		Hints:                  payload.Hints,
+		Image: &store.Image{
+			Name:                    payload.Image,
+			MemoryLimit:             payload.MemoryLimit,
+			CPULimit:                payload.CPULimit,
+			RegistryAccessTokenUUID: payload.RegistryAccessTokenUUID,
+			ExposedPort:             payload.ExposedPort,
+		},
+		ExposedPort:  payload.ExposedPort,
+		NoContainer:  payload.NoContainer,
+		DynamicFlag:  payload.DynamicFlag,
+		Flag:         payload.Flag,
+		Score:        payload.Score,
+		ScoreMode:    store.ScoreMode(payload.ScoreMode),
+		ScoreFormula: payload.ScoreFormula,
+		FakeFlag:     payload.FakeFlag,
+		Hints:        payload.Hints,
 	}
 
 	ctx.Store.CreateChallenge(challenge)
 	game.Challenges = append(game.Challenges, challenge)
 	ctx.Store.UpdateGame(game)
-
-	if !payload.NoContainer {
-		// TOOD: Prepare containers in agents here
-
-	}
 
 	return OKWithData(&c, uuid)
 }

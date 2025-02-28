@@ -87,7 +87,7 @@ var (
 
 			ctx, cancel := context.WithCancel(context.Background())
 
-			// Agents
+			// K8s
 			kubeconfig := flag.String("kubeconfig", instanceConfig.Kubeconfig, "(optional) absolute path to the kubeconfig file")
 			flag.Parse()
 

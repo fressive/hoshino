@@ -51,6 +51,7 @@ func (s *Store) migrate() {
 		&Setting{},
 		&GameEvent{},
 		&Team{},
+		&Image{},
 	)
 }
 
