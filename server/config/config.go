@@ -42,25 +42,14 @@ type Config struct {
 	// The secret key to generate JWT token
 	Secret string `json:"secret" mapstructure:"secret"`
 
+	// Kubernetes configuration
+	Kubeconfig string `json:"kubeconfig" mapstructure:"kubeconfig"`
+
 	// The SMTP configuration
 	SMTP SMTP `json:"smtp" mapstructure:"smtp"`
 
 	// The CORS configuration
 	CORS CORS `json:"cors" mapstructure:"cors"`
-
-	// The container services
-	Agents []Agent `json:"agents" mapstructure:"agents"`
-}
-
-type Agent struct {
-	Name     string `json:"name" mapstructure:"name"`
-	Address  string `json:"address" mapstructure:"address"`
-	Port     int    `json:"port" mapstructure:"port"`
-	Token    string `json:"token" mapstructure:"token"`
-	CertFile string `json:"cert_file" mapstructure:"cert_file"`
-
-	// the weight is used to set load-balancing when multiple agents available
-	Weight int
 }
 
 type SMTP struct {

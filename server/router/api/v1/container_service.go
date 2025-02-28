@@ -18,30 +18,20 @@ package v1
 
 import (
 	"fmt"
+	"log/slog"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"github.com/spf13/cast"
 	"rina.icu/hoshino/server/context"
 	"rina.icu/hoshino/store"
-)
-
-type (
-	CreateContainerPayload struct {
-		ChallengeUUID string `json:"challenge_uuid"`
-	}
 )
 
 func CreateContainer(c echo.Context) error {
 	ctx := c.(*context.CustomContext)
 
-	var payload CreateContainerPayload
-	if err := c.Bind(&payload); err != nil {
-		return Failed(&c, "Invalid payload")
-	}
-
-	challengeUUID := payload.ChallengeUUID
-
-	challenge, err := ctx.Store.GetChallengeByUUID(challengeUUID)
+	challenge, err := ctx.Store.GetChallengeByUUID(c.Param("challenge_uuid"))
 
 	if err != nil {
 		return Failed(&c, "Unable to fetch challenge")
@@ -54,18 +44,83 @@ func CreateContainer(c echo.Context) error {
 		return Failed(&c, "Unable to create container.")
 	}
 
+	user, _ := GetUserFromToken(&c)
+	team := challenge.Game.GetTeamByUser(ctx.Store, user)
+
+	if team == nil {
+		return Failed(&c, "You are not in a team.")
+	}
+
 	flag := challenge.Flag
 	if challenge.DynamicFlag {
 		flag = fmt.Sprintf("%s{%s}", challenge.Game.FlagPrefix, uuid.New().String())
 	}
 
+	if !ctx.Store.CanCreateContainer(user) {
+		return Failed(&c, "You have reached the maximum number of containers.")
+	}
+
 	// TODO: create container here
-	ctx.Store.CreateFlag(&store.Flag{
+	slog.Info("Creating container for challenge %s", slog.Any("challenge", challenge))
+
+	uuid, err := ctx.ContainerManager.CreateChallengeContainer(challenge, user, flag)
+	containerModel := &store.Container{
+		Creator:          user,
+		Challenge:        challenge,
+		UUID:             uuid,
+		Status:           store.ContainerStatusRunning,
+		ExpireTime:       time.Now().Unix() + cast.ToInt64(ctx.Store.GetSettingInt("container_expire_time")),
+		LeftRenewalTimes: ctx.Store.GetSettingInt("max_container_renewal_times"),
+	}
+
+	flagModel := &store.Flag{
 		Challenge: challenge,
 		Flag:      flag,
+		Container: containerModel,
+		Team:      team,
+	}
 
-		// TODO: set container
+	ctx.Store.CreateContainer(containerModel)
+	ctx.Store.CreateFlag(flagModel)
+
+	if err != nil {
+		return Failed(&c, "Unable to create container.")
+	}
+
+	return OKWithData(&c, map[string]interface{}{
+		"uuid":     uuid,
+		"entrance": fmt.Sprintf("%s.%s", uuid, ctx.Store.GetSettingString("node_domain")),
+		"expire":   containerModel.ExpireTime,
 	})
+}
+
+func DisposeContainer(c echo.Context) error {
+	ctx := c.(*context.CustomContext)
+
+	challenge, err := ctx.Store.GetChallengeByUUID(c.Param("challenge_uuid"))
+
+	if err != nil {
+		return Failed(&c, "Unable to fetch challenge")
+	}
+
+	user, _ := GetUserFromToken(&c)
+	container, err := ctx.Store.GetContainerByChallengeAndUser(challenge, user)
+
+	if err != nil {
+		return Failed(&c, "Unable to fetch container")
+	}
+
+	if container.CreatorID != user.ID {
+		return PermissionDenied(&c)
+	}
+
+	if container.Status != store.ContainerStatusRunning {
+		return Failed(&c, "Container is not running")
+	}
+
+	ctx.ContainerManager.DeleteChallengeContainer(challenge, user)
+	container.Status = store.ContainerStatusStopped
+	ctx.Store.UpdateContainer(container)
 
 	return OK(&c)
 }

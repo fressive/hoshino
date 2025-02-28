@@ -52,7 +52,7 @@ type Challenge struct {
 	gorm.Model `json:"-"`
 
 	// Name of the challenge
-	Name string `gorm:"unique" json:"name"`
+	Name string `json:"name"`
 
 	// Description of the challenge
 	// Markdown supported
@@ -62,25 +62,27 @@ type Challenge struct {
 	UUID string `gorm:"unique" json:"uuid"`
 
 	// Game of the challenge
-	GameID uint  `json:"game_id"`
+	GameID uint  `json:"-"`
 	Game   *Game `gorm:"foreignKey:GameID" json:"game"`
 
 	// State of the challenge
 	State ChallengeState `gorm:"default:0" json:"state"`
 
 	// Creators of the challenge
-	CreatorID uint  `json:"creator_id"`
+	CreatorID uint  `json:"-"`
 	Creator   *User `gorm:"foreignKey:CreatorID" json:"creator"`
 
 	// Attachments of the challenge
 	Attachments []*Attachment `gorm:"many2many:challenge_attachments;" json:"attachments"`
 
-	// Category of the challenge
-	CategoryID uint      `json:"category_id"`
-	Category   *Category `gorm:"foreignKey:CategoryID" json:"category"`
-
 	// Tags of the challenge
 	Tags types.StringArray `gorm:"type:text" json:"tags"`
+
+	// Category of the challenge
+	Category string `json:"category"`
+
+	// StartTime of the challenge
+	StartTime int64 `gorm:"default:0" json:"start_time"`
 
 	// ExpireTime of the challenge
 	ExpireTime int64 `gorm:"default:0" json:"expire_time"`
@@ -88,8 +90,11 @@ type Challenge struct {
 	// Is this challenge available (to create container, submit flag etc.) after the deadline
 	AfterExpiredOperations AfterExpireOp `gorm:"default:0" json:"after_expired_operations"`
 
-	// docker-compose.yml of the challenge
-	DockerComposeFile string `gorm:"type:text" json:"docker_compose_file" priv:"2"`
+	// Image of the challenge
+	Image string `gorm:"type:text" json:"image" priv:"2"`
+
+	// Exposed port of the challenge
+	ExposedPort int `gorm:"default:0" json:"exposed_port"`
 
 	// Does the challenge need a container
 	NoContainer bool `gorm:"default:false" json:"no_container"`

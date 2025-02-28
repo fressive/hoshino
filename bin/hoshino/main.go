@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log/slog"
 	"os"
@@ -24,7 +25,10 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"rina.icu/hoshino/internal"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 	"rina.icu/hoshino/internal/util"
 	"rina.icu/hoshino/server"
 	"rina.icu/hoshino/server/config"
@@ -48,13 +52,14 @@ var (
 		Short: "Hoshino is a lightweight CTF platform designed for team internal training.",
 		Run: func(_ *cobra.Command, _ []string) {
 			instanceConfig := &config.Config{
-				Mode:    viper.GetString("mode"),
-				Address: viper.GetString("address"),
-				Port:    viper.GetInt("port"),
-				DataDir: viper.GetString("data_dir"),
-				DSN:     viper.GetString("dsn"),
-				Driver:  viper.GetString("driver"),
-				Secret:  viper.GetString("secret"),
+				Mode:       viper.GetString("mode"),
+				Address:    viper.GetString("address"),
+				Port:       viper.GetInt("port"),
+				DataDir:    viper.GetString("data_dir"),
+				DSN:        viper.GetString("dsn"),
+				Driver:     viper.GetString("driver"),
+				Secret:     viper.GetString("secret"),
+				Kubeconfig: viper.GetString("kube_config"),
 				SMTP: func() config.SMTP {
 					var smtp config.SMTP
 					if err := viper.UnmarshalKey("smtp", &smtp); err != nil {
@@ -68,13 +73,6 @@ var (
 						panic(err)
 					}
 					return cors
-				}(),
-				Agents: func() []config.Agent {
-					var agents []config.Agent
-					if err := viper.UnmarshalKey("agents", &agents); err != nil {
-						panic(err)
-					}
-					return agents
 				}(),
 
 				Version: version.Version,
@@ -90,11 +88,34 @@ var (
 			ctx, cancel := context.WithCancel(context.Background())
 
 			// Agents
+			kubeconfig := flag.String("kubeconfig", instanceConfig.Kubeconfig, "(optional) absolute path to the kubeconfig file")
+			flag.Parse()
 
-			for i, agent := range instanceConfig.Agents {
-				slog.Info(fmt.Sprintf("Agent[%d]: %s:%d", i, agent.Address, agent.Port))
-				agentClient := internal.NewClient(&agent)
-				agentClient.Ping()
+			k8sConf, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+			if err != nil {
+				panic(err.Error())
+			}
+
+			clientset, err := kubernetes.NewForConfig(k8sConf)
+			if err != nil {
+				panic(err.Error())
+			}
+
+			nodes, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+			if err != nil {
+				panic(err.Error())
+			}
+
+			ns := &v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "challenge-containers",
+				},
+			}
+
+			clientset.CoreV1().Namespaces().Create(context.Background(), ns, metav1.CreateOptions{})
+
+			for _, node := range nodes.Items {
+				slog.Info(fmt.Sprintf("Kubernetes Node Name: %s", node.Name))
 			}
 
 			// Email
@@ -103,7 +124,7 @@ var (
 
 			// Web
 
-			s, err := server.NewServer(context.Background(), instanceConfig)
+			s, err := server.NewServer(context.Background(), instanceConfig, clientset)
 
 			if err != nil {
 				cancel()

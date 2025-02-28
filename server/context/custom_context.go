@@ -16,6 +16,7 @@ package context
 
 import (
 	"github.com/labstack/echo/v4"
+	"rina.icu/hoshino/internal/k8s"
 	"rina.icu/hoshino/server/config"
 	"rina.icu/hoshino/store"
 )
@@ -23,6 +24,7 @@ import (
 type CustomContext struct {
 	echo.Context
 
-	Config *config.Config
-	Store  *store.Store
+	Config           *config.Config
+	Store            *store.Store
+	ContainerManager *k8s.ContainerManager
 }

@@ -43,7 +43,6 @@ func (s *Store) initSetting() {
 func (s *Store) migrate() {
 	s.db.AutoMigrate(
 		&Attachment{},
-		&Category{},
 		&Challenge{},
 		&Container{},
 		&Flag{},

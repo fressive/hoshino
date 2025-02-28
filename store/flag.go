@@ -74,18 +74,18 @@ func (s *Store) GetFlagByID(id uint) (*Flag, error) {
 
 func (s *Store) GetFlagByChallenge(flag string, challenge *Challenge) (*Flag, error) {
 	var f Flag
-	err := s.db.Where("flag = ? AND challenge_id = ?", flag, challenge.ID).First(&f).Error
+	err := s.db.Preload("Team").Preload("Challenge").Where("flag = ? AND challenge_id = ?", flag, challenge.ID).First(&f).Error
 	return &f, err
 }
 
 func (s *Store) GetFlagsByChallenge(flag string, challenge *Challenge) ([]*Flag, error) {
 	var flags []*Flag
-	err := s.db.Where("flag = ? AND challenge_id = ?", flag, challenge.ID).Find(&flags).Error
+	err := s.db.Preload("Team").Preload("Challenge").Where("flag = ? AND challenge_id = ?", flag, challenge.ID).Find(&flags).Error
 	return flags, err
 }
 
 func (s *Store) GetFlagByChallengeAndTeam(challenge *Challenge, team *Team) (*Flag, error) {
 	var flag Flag
-	err := s.db.Where("challenge_id = ? AND team_id = ?", challenge.ID, team.ID).Order("ID DESC").First(&flag).Error
+	err := s.db.Preload("Team").Preload("Challenge").Where("challenge_id = ? AND team_id = ?", challenge.ID, team.ID).Order("ID DESC").First(&flag).Error
 	return &flag, err
 }

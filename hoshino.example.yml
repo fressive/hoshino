@@ -24,6 +24,8 @@ dsn: ""
 # The secret key, used to generate the JWT token
 secret: "takanashi_hoshino_is_kawaii"
 
+kube_config: "kubeconfig.yml"
+
 smtp:
   # The SMTP server host
   host: "smtp.example.com"
@@ -38,13 +40,3 @@ cors:
   # The allowed origins
   allow_origins:
     - "*"
-
-agents:
-  - name: "local" 
-    # The name must be equal to the DNS in the certificate
-    address: "127.0.0.1"
-    port: 1271
-    token: "takanashi_hoshino_is_super_kawaii"
-    weight: 1
-    cert_file: "certs/server.pem"
-

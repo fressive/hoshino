@@ -19,6 +19,7 @@ import (
 
 	"golang.org/x/exp/slog"
 	"gorm.io/gorm"
+	"rina.icu/hoshino/store/types"
 )
 
 type UserPrivilege int
@@ -36,19 +37,19 @@ type User struct {
 	UUID string `gorm:"unique;not null" json:"uuid"`
 
 	// Username
-	Username string `gorm:"unique;not null" json:"username"`
+	Username string `gorm:"unique;not null" json:"username" priv:"2"`
 
 	// Nickname
 	Nickname string `gorm:"not null" json:"nickname"`
 
 	// SHA256ed Password
-	Password string `gorm:"not null" json:"-"`
+	Password string `gorm:"not null" json:"-" priv:"3"`
 
 	// Salt
-	Salt string `gorm:"not null" json:"-"`
+	Salt string `gorm:"not null" json:"-" priv:"3"`
 
 	// Email
-	Email string `gorm:"unique;not null" json:"email"`
+	Email string `gorm:"unique;not null" json:"email" priv:"2"`
 
 	// Is Email Verified
 	EmailVerified bool `gorm:"not null" json:"email_verified" priv:"2"`
@@ -73,6 +74,9 @@ type User struct {
 
 	// Last Login Time
 	LastLoginTime int64 `gorm:"not null" json:"last_login_time" priv:"2"`
+
+	// Token
+	DockerRegistryToken types.StringArray `priv:"2"`
 }
 
 func (s *Store) CreateUser(user User) error {

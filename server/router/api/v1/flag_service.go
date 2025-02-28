@@ -124,14 +124,14 @@ func SubmitFlag(c echo.Context) error {
 		return PermissionDenied(&c)
 	}
 
-	team, err := ctx.Store.GetTeamByUUID(payload.TeamUUID)
-
+	challenge, err := ctx.Store.GetChallengeByUUID(c.Param("challenge_uuid"))
 	if err != nil {
 		return Failed(&c, "Failed to submit the flag")
 	}
 
-	challenge, err := ctx.Store.GetChallengeByUUID(c.Param("challenge_uuid"))
-	if err != nil {
+	team := challenge.Game.GetTeamByUser(ctx.Store, user)
+
+	if team == nil {
 		return Failed(&c, "Failed to submit the flag")
 	}
 

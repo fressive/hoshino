@@ -68,9 +68,6 @@ type Game struct {
 	// The challenges of the game
 	Challenges []*Challenge `gorm:"many2many:game_challenges;" json:"challenges"`
 
-	// The categories of the game
-	Categories []*Category `gorm:"many2many:game_categories;" json:"categories"`
-
 	// Flag prefix of the game
 	FlagPrefix string `gorm:"default:flag" json:"flag_prefix" priv:"2"`
 
@@ -88,26 +85,18 @@ func (s *Store) UpdateGame(game *Game) error {
 
 func (s *Store) GetGames() ([]*Game, error) {
 	var games []*Game
-	err := s.db.Preload("Creator").Preload("Managers").Preload("Challenges").Preload("Categories").Find(&games).Error
+	err := s.db.Preload("Creator").Preload("Managers").Preload("Challenges").Find(&games).Error
 	return games, err
 }
 
 func (s *Store) GetGameByUUID(uuid string) (*Game, error) {
 	var game Game
-	err := s.db.Preload("Creator").Preload("Managers").Preload("Challenges").Preload("Categories").Where("uuid = ?", uuid).First(&game).Error
+	err := s.db.Preload("Creator").Preload("Managers").Preload("Challenges").Where("uuid = ?", uuid).First(&game).Error
 	return &game, err
 }
 
 func (g Game) IsManager(user *User) bool {
 	return slices.Contains(g.Managers, user)
-}
-
-func (g *Game) GetCategories() []string {
-	var categories []string
-	for _, category := range g.Categories {
-		categories = append(categories, category.Name)
-	}
-	return categories
 }
 
 func (g *Game) GetChallenges(withInvisible bool) []*Challenge {

@@ -25,11 +25,12 @@ type CreateChallengePayload struct {
 	Name                string   `json:"name" validate:"required"`
 	Description         string   `json:"description" validate:"required"`
 	Attachments         []string `json:"attachments"`
-	CategoryUUID        string   `json:"category_uuid" validate:"required"`
+	Category            string   `json:"category" validate:"required"`
 	Tags                []string `json:"tags"`
 	ExpireTime          int64    `json:"expire_time" validate:"required"`
 	AfterExpiredOptions int32    `json:"after_expired_options" validate:"required"`
-	DockerComposeFile   string   `json:"docker_compose_file"`
+	Image               string   `json:"image"`
+	ExposedPort         int      `json:"exposed_port"`
 	NoContainer         bool     `json:"no_container"`
 	DynamicFlag         bool     `json:"dynamic_flag"`
 	Flag                string   `json:"flag"`
@@ -50,7 +51,7 @@ func CreateChallenge(c echo.Context) error {
 		return Failed(&c, "Unable to fetch game")
 	}
 
-	if !game.IsManager(user) || !user.HasPrivilege(store.UserPrivilegeAdministrator) {
+	if !game.IsManager(user) && !user.HasPrivilege(store.UserPrivilegeAdministrator) {
 		return PermissionDenied(&c)
 	}
 
@@ -61,11 +62,6 @@ func CreateChallenge(c echo.Context) error {
 
 	// TODO: Handle attachments
 
-	category, err := ctx.Store.GetCategoryByUUID(payload.CategoryUUID)
-	if err != nil {
-		return Failed(&c, "Unable to fetch category")
-	}
-
 	uuid := util.UUID()
 	challenge := &store.Challenge{
 		Name:                   payload.Name,
@@ -73,11 +69,12 @@ func CreateChallenge(c echo.Context) error {
 		UUID:                   uuid,
 		Game:                   game,
 		Creator:                user,
-		Category:               category,
+		Category:               payload.Category,
 		Tags:                   payload.Tags,
 		ExpireTime:             payload.ExpireTime,
 		AfterExpiredOperations: store.AfterExpireOp(payload.AfterExpiredOptions),
-		DockerComposeFile:      payload.DockerComposeFile,
+		Image:                  payload.Image,
+		ExposedPort:            payload.ExposedPort,
 		NoContainer:            payload.NoContainer,
 		DynamicFlag:            payload.DynamicFlag,
 		Flag:                   payload.Flag,

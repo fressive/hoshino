@@ -24,7 +24,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"golang.org/x/time/rate"
+	"k8s.io/client-go/kubernetes"
 
+	"rina.icu/hoshino/internal/k8s"
 	"rina.icu/hoshino/server/config"
 	cc "rina.icu/hoshino/server/context"
 	hmw "rina.icu/hoshino/server/middleware"
@@ -38,6 +40,7 @@ type Server struct {
 
 	echoServer *echo.Echo
 	store      *store.Store
+	k8sClient  *kubernetes.Clientset
 }
 
 func registerRouter(s *Server) {
@@ -110,12 +113,6 @@ func registerRouter(s *Server) {
 	teamApi.POST("/create", v1.CreateTeam).Name = "create-team"
 	// teamApi.POST("/:uuid/ban", v1.BanTeam).Name = "ban-team"
 
-	// Category APIs
-	categoryApi := gameApi.Group("/:game_uuid/category")
-	categoryApi.GET("", v1.GetCategories).Name = "get-categories"
-	categoryApi.GET("/:category_uuid", v1.GetCategory).Name = "get-category"
-	categoryApi.POST("/create", v1.CreateCategory).Name = "create-category"
-
 	// Challenge APIs
 	challengeApi := gameApi.Group("/:game_uuid/challenge")
 	challengeApi.GET("", v1.GetFullChallenges).Name = "get-challenges"
@@ -124,11 +121,16 @@ func registerRouter(s *Server) {
 	challengeApi.POST("/:challenge_uuid/flag", v1.SubmitFlag).Name = "submit-flag"
 	challengeApi.POST("/:challenge_uuid/container/create", v1.CreateContainer).Name = "create-challenge-container"
 
+	// Container APIs
+	containerApi := challengeApi.Group("/:challenge_uuid/container")
+	containerApi.POST("/create", v1.CreateContainer).Name = "create-container"
+	containerApi.POST("/dispose", v1.DisposeContainer).Name = "dispose-container"
+
 	// Health check
 	e.GET("/health", router.HealthService)
 }
 
-func NewServer(ctx context.Context, config *config.Config) (*Server, error) {
+func NewServer(ctx context.Context, config *config.Config, clientSet *kubernetes.Clientset) (*Server, error) {
 	s := &Server{
 		config: config,
 	}
@@ -156,12 +158,17 @@ func NewServer(ctx context.Context, config *config.Config) (*Server, error) {
 				Context: c,
 				Config:  s.config,
 				Store:   s.store,
+				ContainerManager: &k8s.ContainerManager{
+					K8SClient: s.k8sClient,
+					Store:     s.store,
+				},
 			}
 			return next(ctx)
 		}
 	})
 
 	s.echoServer = echoServer
+	s.k8sClient = clientSet
 
 	store, err := store.GetStore(config)
 

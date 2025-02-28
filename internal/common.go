@@ -28,5 +28,9 @@ var DefaultSettings = map[string]string{
 	"email_regex":       ".*",
 	"need_email_verify": "true",
 
-	"max_container_per_user": "2",
+	"max_container_per_user":      "1",
+	"max_container_renewal_times": "3",
+	"container_expire_time":       "3600",
+
+	"node_domain": "node.hoshino.rina.icu",
 }
