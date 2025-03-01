@@ -107,7 +107,7 @@ func (s *Store) UpdateUser(user *User) error {
 
 func (s *Store) UpdateLastLogin(user *User, ip string) error {
 	user.LastLoginIP = ip
-	user.LastLoginTime = time.Now().Unix()
+	user.LastLoginTime = time.Now().UnixMilli()
 	return s.UpdateUser(user)
 }
 

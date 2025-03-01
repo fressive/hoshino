@@ -85,13 +85,13 @@ func (s *Store) UpdateGame(game *Game) error {
 
 func (s *Store) GetGames() ([]*Game, error) {
 	var games []*Game
-	err := s.db.Preload("Creator").Preload("Managers").Preload("Challenges").Find(&games).Error
+	err := s.db.Preload("Creator").Preload("Managers").Preload("Challenges").Preload("Challenges.Creator").Find(&games).Error
 	return games, err
 }
 
 func (s *Store) GetGameByUUID(uuid string) (*Game, error) {
 	var game Game
-	err := s.db.Preload("Creator").Preload("Managers").Preload("Challenges").Where("uuid = ?", uuid).First(&game).Error
+	err := s.db.Preload("Creator").Preload("Managers").Preload("Challenges").Preload("Challenges.Creator").Where("uuid = ?", uuid).First(&game).Error
 	return &game, err
 }
 

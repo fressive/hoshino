@@ -37,6 +37,7 @@ type Container struct {
 	Creator          *User           `gorm:"foreignKey:CreatorID" json:"creator"`
 	ChallengeID      uint            `json:"challenge_id"`
 	Challenge        *Challenge      `gorm:"foreignKey:ChallengeID" json:"challenge"`
+	NodeDomain       string          `json:"node_domain"`
 	UUID             string          `gorm:"unique" json:"uuid"`
 	Status           ContainerStatus `gorm:"default:0" json:"status"`
 	ExpireTime       int64           `gorm:"default:0" json:"expire_time"`
@@ -81,7 +82,7 @@ func (s *Store) GetContainerByChallengeAndUser(c *Challenge, u *User) (*Containe
 
 func (s *Store) GetExpiredRunningContainers() ([]*Container, error) {
 	var containers []*Container
-	err := s.db.Preload("Creator").Preload("Challenge").Where("expire_time < ? AND status = 1", time.Now().Unix()).Find(&containers).Error
+	err := s.db.Preload("Creator").Preload("Challenge").Where("expire_time < ? AND status = 1", time.Now().UnixMilli()).Find(&containers).Error
 	return containers, err
 }
 

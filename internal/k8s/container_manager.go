@@ -56,7 +56,7 @@ func (cm *ContainerManager) CreateContainer(payload *ContainerCreatePayload, inf
 	name := "container-" + hash
 	// Create a container in k8s
 
-	info.Labels["identifier"] = info.Identifier
+	info.Labels["hash"] = hash
 
 	deployment := &appv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -135,7 +135,7 @@ func (cm *ContainerManager) CreateContainer(payload *ContainerCreatePayload, inf
 	containerUUID := util.UUID()
 
 	pods, err := cm.K8SClient.CoreV1().Pods("challenge-containers").List(context.Background(), metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("identifier=%s", info.Identifier),
+		LabelSelector: fmt.Sprintf("hash=%s", hash),
 	})
 
 	if err != nil {

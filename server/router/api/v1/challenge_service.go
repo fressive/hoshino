@@ -67,8 +67,6 @@ func CreateChallenge(c echo.Context) error {
 		return Failed(&c, "Invalid payload")
 	}
 
-	// TODO: Handle attachments
-
 	uuid := util.UUID()
 	challenge := &store.Challenge{
 		Name:                   payload.Name,
@@ -105,7 +103,7 @@ func CreateChallenge(c echo.Context) error {
 	game.Challenges = append(game.Challenges, challenge)
 	ctx.Store.UpdateGame(game)
 
-	return OKWithData(&c, uuid)
+	return OKWithData(&c, map[string]any{"uuid": uuid})
 }
 
 func GetFullChallenge(c echo.Context) error {

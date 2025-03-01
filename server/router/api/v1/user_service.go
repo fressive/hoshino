@@ -184,7 +184,7 @@ func EmailVerify(c echo.Context) error {
 		return Failed(&c, "Invalid verification code")
 	}
 
-	if time.Now().Unix() > user.EmailVerificationCodeExpire {
+	if time.Now().UnixMilli() > user.EmailVerificationCodeExpire {
 		return Failed(&c, "Verification code has expired")
 	}
 
@@ -203,15 +203,15 @@ func SendVerificationEmail(c echo.Context) error {
 		return Failed(&c, "Email has already verified")
 	}
 
-	if time.Now().Unix()-user.EmailVerificationCodeLastSent < 60 {
+	if time.Now().UnixMilli()-user.EmailVerificationCodeLastSent < 60*1000 {
 		return Failed(&c, "Rate limit exceeded, please try again later")
 	}
 
 	if ctx.Store.GetSettingBool("need_email_verify") {
 		code := fmt.Sprintf("%s{%s}", ctx.Store.GetSettingString("flag_prefix"), util.UUID())
 		user.EmailVerificationCode = code
-		user.EmailVerificationCodeExpire = time.Now().Add(time.Minute * 5).Unix()
-		user.EmailVerificationCodeLastSent = time.Now().Unix()
+		user.EmailVerificationCodeExpire = time.Now().Add(time.Minute * 5).UnixMilli()
+		user.EmailVerificationCodeLastSent = time.Now().UnixMilli()
 		ctx.Store.UpdateUser(user)
 
 		util.SendVerificationEmail(ctx.Store, user.Email, user.Nickname, code)
@@ -283,7 +283,7 @@ func UserRegister(c echo.Context) error {
 		Privilege:      store.UserPrivilegeNormal,
 		RegistrationIP: c.RealIP(),
 		LastLoginIP:    c.RealIP(),
-		LastLoginTime:  time.Now().Unix(),
+		LastLoginTime:  time.Now().UnixMilli(),
 	}
 
 	// not to send verification email this time

@@ -32,10 +32,10 @@ const (
 type AfterExpireOp int
 
 const (
-	AfterExpireDisableAll AfterExpireOp = iota
-	AfterExpireCreateContainer
-	AfterExpireSubmitFlag
-	AfterExpireScore
+	AfterExpireDisableAll      AfterExpireOp = iota
+	AfterExpireCreateContainer               = 1
+	AfterExpireSubmitFlag                    = 2
+	AfterExpireScore                         = 4
 )
 
 type Challenge struct {
@@ -114,7 +114,7 @@ func (s *Store) CreateChallenge(challenge *Challenge) error {
 
 func (s *Store) GetChallenges() ([]*Challenge, error) {
 	var challenges []*Challenge
-	err := s.db.Preload("Game").Preload("Creator").Preload("Attachments").Find(&challenges).Error
+	err := s.db.Preload("Game").Preload("Creator").Preload("Image").Find(&challenges).Error
 	return challenges, err
 }
 
@@ -126,14 +126,14 @@ func (s *Store) GetChallengeByID(id int) (*Challenge, error) {
 
 func (s *Store) GetChallengeByUUID(uuid string) (*Challenge, error) {
 	var challenge Challenge
-	err := s.db.Preload("Game").Preload("Creator").Preload("Attachments").Where("uuid = ?", uuid).First(&challenge).Error
+	err := s.db.Preload("Game").Preload("Creator").Preload("Image").Where("uuid = ?", uuid).First(&challenge).Error
 	return &challenge, err
 }
 
 func (c *Challenge) Expired() bool {
-	return c.ExpireTime != 0 && c.ExpireTime < time.Now().Unix()
+	return c.ExpireTime != 0 && c.ExpireTime < time.Now().UnixMilli()
 }
 
 func (c *Challenge) Ongoing() bool {
-	return c.StartTime == 0 || c.StartTime < time.Now().Unix() && !c.Expired()
+	return c.StartTime == 0 || c.StartTime < time.Now().UnixMilli() && !c.Expired()
 }

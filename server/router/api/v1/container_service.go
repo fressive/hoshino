@@ -18,12 +18,9 @@ package v1
 
 import (
 	"fmt"
-	"log/slog"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"github.com/spf13/cast"
 	"rina.icu/hoshino/internal/k8s"
 	"rina.icu/hoshino/internal/util"
 	"rina.icu/hoshino/server/context"
@@ -53,16 +50,11 @@ func CreateChallengeContainer(c echo.Context) error {
 		return Failed(&c, "You are not in a team.")
 	}
 
-	flag := challenge.FlagFormat
-	if challenge.DynamicFlag {
-		flag = fmt.Sprintf("%s{%s}", challenge.Game.FlagPrefix, uuid.New().String())
-	}
+	flag := fmt.Sprintf("%s{%s}", challenge.Game.FlagPrefix, util.GenerateFlagContent(challenge.FlagFormat, user.UUID))
 
 	if !ctx.Store.CanCreateContainer(user) {
 		return Failed(&c, "You have reached the maximum number of containers.")
 	}
-
-	slog.Info("Creating container for challenge %s", slog.Any("challenge", challenge))
 
 	uuid, nodeDomain, err := ctx.ContainerManager.CreateChallengeContainer(challenge, user, flag, ctx.Store)
 	containerModel := &store.Container{
@@ -70,9 +62,10 @@ func CreateChallengeContainer(c echo.Context) error {
 		Challenge:        challenge,
 		UUID:             uuid,
 		Status:           store.ContainerStatusRunning,
-		ExpireTime:       time.Now().Unix() + cast.ToInt64(ctx.Store.GetSettingInt("container_expire_time")),
+		ExpireTime:       time.Now().UnixMilli() + ctx.Store.GetSettingInt64("container_expire_time"),
 		LeftRenewalTimes: ctx.Store.GetSettingInt("max_container_renewal_times"),
 		Identifier:       challenge.UUID + user.UUID,
+		NodeDomain:       nodeDomain,
 	}
 
 	flagModel := &store.Flag{
@@ -90,9 +83,10 @@ func CreateChallengeContainer(c echo.Context) error {
 	}
 
 	return OKWithData(&c, map[string]interface{}{
-		"uuid":     uuid,
-		"entrance": fmt.Sprintf("%s.%s", uuid, nodeDomain),
-		"expire":   containerModel.ExpireTime,
+		"uuid":               uuid,
+		"entrance":           fmt.Sprintf("%s.%s", uuid, nodeDomain),
+		"expire":             containerModel.ExpireTime,
+		"left_renewal_times": containerModel.LeftRenewalTimes,
 	})
 }
 
@@ -167,9 +161,10 @@ func CreateContainer(c echo.Context) error {
 		Creator:          user,
 		UUID:             uuid,
 		Status:           store.ContainerStatusRunning,
-		ExpireTime:       time.Now().Unix() + cast.ToInt64(ctx.Store.GetSettingInt("container_expire_time")),
+		ExpireTime:       time.Now().UnixMilli() + ctx.Store.GetSettingInt64("container_expire_time"),
 		LeftRenewalTimes: ctx.Store.GetSettingInt("max_container_renewal_times"),
 		Identifier:       identifier,
+		NodeDomain:       nodeDomain,
 	}
 
 	ctx.Store.CreateContainer(container)
@@ -204,4 +199,32 @@ func DisposeContainer(c echo.Context) error {
 	ctx.Store.UpdateContainer(container)
 
 	return OK(&c)
+}
+
+func GetChallengeRunningContainer(c echo.Context) error {
+	ctx := c.(*context.CustomContext)
+
+	challenge, err := ctx.Store.GetChallengeByUUID(c.Param("challenge_uuid"))
+
+	if err != nil {
+		return Failed(&c, "Unable to fetch challenge")
+	}
+
+	user, _ := GetUserFromToken(&c)
+	container, err := ctx.Store.GetContainerByChallengeAndUser(challenge, user)
+
+	if err != nil {
+		return Failed(&c, "Unable to fetch container")
+	}
+
+	if container.Status != store.ContainerStatusRunning {
+		return Failed(&c, "Container is not running")
+	}
+
+	return OKWithData(&c, map[string]interface{}{
+		"uuid":               container.UUID,
+		"entrance":           fmt.Sprintf("%s.%s", container.UUID, container.NodeDomain),
+		"expire":             container.ExpireTime,
+		"left_renewal_times": container.LeftRenewalTimes,
+	})
 }

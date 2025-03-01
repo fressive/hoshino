@@ -64,6 +64,11 @@ func (s *Store) GetSettingInt(key string) int {
 	return cast.ToInt(setting)
 }
 
+func (s *Store) GetSettingInt64(key string) int64 {
+	setting := s.GetSettingString(key)
+	return cast.ToInt64(setting)
+}
+
 func (s *Store) SetSetting(key string, value string) error {
 	err := s.db.Model(&Setting{}).Where("key = ?", key).Update("value", value).Error
 
