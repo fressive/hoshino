@@ -38,7 +38,6 @@ type Flag struct {
 	SolvedAt int64 `gorm:"default:0"`
 
 	// Score is the score of the flag
-	// The score will NOT be caculated in some game mode.
 	Score int `gorm:"default:-1"`
 
 	// ChallengeID is the ID of the challenge that the flag belongs to
@@ -88,4 +87,10 @@ func (s *Store) GetFlagByChallengeAndTeam(challenge *Challenge, team *Team) (*Fl
 	var flag Flag
 	err := s.db.Preload("Team").Preload("Challenge").Where("challenge_id = ? AND team_id = ?", challenge.ID, team.ID).Order("ID DESC").First(&flag).Error
 	return &flag, err
+}
+
+func (s *Store) GetSolvedFlagsByChallenge(challenge *Challenge) ([]*Flag, error) {
+	var flags []*Flag
+	err := s.db.Preload("Team").Preload("Challenge").Where("challenge_id = ? AND state >= 1", challenge.ID).Order("solved_at ASC").Find(&flags).Error
+	return flags, err
 }

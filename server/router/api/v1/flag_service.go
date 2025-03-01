@@ -17,8 +17,10 @@ package v1
 import (
 	"fmt"
 	"log/slog"
+	"math"
 	"time"
 
+	"github.com/Knetic/govaluate"
 	"github.com/labstack/echo/v4"
 	"rina.icu/hoshino/internal/util"
 	"rina.icu/hoshino/server/context"
@@ -51,33 +53,32 @@ func anticheatCheck(_ *echo.Context, s *store.Store,
 		flag, err := s.GetFlagByChallenge(flag, challenge)
 		if err != nil {
 			slog.Error(fmt.Sprintf("Failed to get flag: %s ", err.Error()))
-			return true, CheatReasonNone
-		}
+		} else {
+			if flag.Team.ID != team.ID {
+				event := store.GameEvent{
+					Content:      fmt.Sprintf("Team `%s` shared the flag `%s` with team `%s`", team.Name, flag.Flag, flag.Team.Name),
+					Game:         challenge.Game,
+					Challenge:    challenge,
+					RelatedTeams: []*store.Team{team, flag.Team},
+					Visibility:   true,
+					Type:         store.GameEventTypeCheatDetected,
+				}
 
-		if flag.Team.ID != team.ID {
-			event := store.GameEvent{
-				Content:      fmt.Sprintf("Team `%s` shared the flag `%s` with team `%s`", team.Name, flag.Flag, flag.Team.Name),
-				Game:         challenge.Game,
-				Challenge:    challenge,
-				RelatedTeams: []*store.Team{team, flag.Team},
-				Visibility:   true,
-				Type:         store.GameEventTypeCheatDetected,
+				flag.State = store.FlagCheated
+				s.UpdateFlag(flag)
+
+				if challenge.Game.AutoBan {
+					// ban the team instantly
+					team.Banned = true
+					s.UpdateTeam(team)
+				} else {
+					// log the cheat silently
+					event.Visibility = false
+				}
+
+				s.CreateGameEvent(&event)
+				return false, CheatReasonSharingFlag
 			}
-
-			flag.State = store.FlagCheated
-			s.UpdateFlag(flag)
-
-			if challenge.Game.AutoBan {
-				// ban the team instantly
-				team.Banned = true
-				s.UpdateTeam(team)
-			} else {
-				// log the cheat silently
-				event.Visibility = false
-			}
-
-			s.CreateGameEvent(&event)
-			return false, CheatReasonSharingFlag
 		}
 	} else {
 		attachments, err := s.GetAttachmentsByChallenge(challenge)
@@ -158,6 +159,71 @@ func anticheatCheck(_ *echo.Context, s *store.Store,
 	return true, CheatReasonNone
 }
 
+func updateScore(s *store.Store, challenge *store.Challenge) {
+	// update the score of the challenge
+	solvedFlags, err := s.GetSolvedFlagsByChallenge(challenge)
+	if err != nil {
+		slog.Error(fmt.Sprintf("Failed to get solved flags: %s ", err.Error()))
+		return
+	}
+
+	solvedRate := float64(len(solvedFlags)) / float64(len(challenge.Game.GetTeams(s)))
+	lossRate := float64(len(solvedFlags)-1) / float64(len(challenge.Game.GetTeams(s)))
+	exponentialScore := float64(challenge.Score) * math.Exp((float64(challenge.Difficulty)-2)*lossRate)
+	parameters := make(map[string]interface{})
+	parameters["original_score"] = challenge.Score
+	parameters["solved_count"] = len(solvedFlags)
+	parameters["team_count"] = len(challenge.Game.GetTeams(s))
+	parameters["difficulty"] = challenge.Difficulty
+	parameters["loss_rate"] = lossRate
+	parameters["solved_rate"] = solvedRate
+	parameters["unsolved_rate"] = 1 - solvedRate
+	parameters["linear_score"] = float64(challenge.Score) * (1 - lossRate)
+	parameters["exponential_score"] = exponentialScore
+
+	slog.Info(fmt.Sprintf("Original score: %d, Solved count: %d, Team count: %d, Difficulty: %f, Loss rate: %f, Solved rate: %f, Unsolved rate: %f, Linear score: %f, Exponential score: %f", challenge.Score, len(solvedFlags), len(challenge.Game.GetTeams(s)), challenge.Difficulty, lossRate, solvedRate, 1-solvedRate, float64(challenge.Score)*(1-lossRate), exponentialScore))
+
+	functions := map[string]govaluate.ExpressionFunction{
+		"max": func(args ...interface{}) (interface{}, error) {
+			return math.Max(args[0].(float64), args[1].(float64)), nil
+		},
+		"min": func(args ...interface{}) (interface{}, error) {
+			return math.Min(args[0].(float64), args[1].(float64)), nil
+		},
+		"exponential_score_with_top3_bonus": func(args ...interface{}) (interface{}, error) {
+			order := args[0].(uint32)
+			rate1 := args[1].(float64)
+			rate2 := args[2].(float64)
+			rate3 := args[3].(float64)
+			if order == 1 {
+				return exponentialScore * rate1, nil
+			} else if order == 2 {
+				return exponentialScore * rate2, nil
+			} else if order == 3 {
+				return exponentialScore * rate3, nil
+			}
+			return exponentialScore, nil
+		},
+	}
+
+	expression, err := govaluate.NewEvaluableExpressionWithFunctions(challenge.ScoreFormula, functions)
+
+	actualOrder := 1
+	for _, flag := range solvedFlags {
+		if flag.State == 2 && challenge.Game.AutoBan {
+			continue
+		}
+
+		parameters["order"] = actualOrder
+
+		result, _ := expression.Evaluate(parameters)
+		score := math.Round(result.(float64))
+		flag.Score = int(score)
+		s.UpdateFlag(flag)
+		actualOrder++
+	}
+}
+
 func SubmitFlag(c echo.Context) error {
 	ctx := c.(*context.CustomContext)
 
@@ -224,6 +290,7 @@ func SubmitFlag(c echo.Context) error {
 	ok, _ := anticheatCheck(&c, ctx.Store, payload.Flag, team, challenge)
 	if !ok {
 		storedFlag.State = store.FlagCheated
+		storedFlag.SolvedAt = time.Now().UnixMilli()
 		ctx.Store.UpdateFlag(storedFlag)
 
 		if challenge.Game.AutoBan {
@@ -247,5 +314,8 @@ func SubmitFlag(c echo.Context) error {
 		ctx.Store.UpdateFlag(storedFlag)
 		return Failed(&c, "Flag is incorrect")
 	}
+
+	go updateScore(ctx.Store, challenge)
+
 	return OK(&c)
 }
