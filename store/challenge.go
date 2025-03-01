@@ -137,3 +137,9 @@ func (c *Challenge) Expired() bool {
 func (c *Challenge) Ongoing() bool {
 	return c.StartTime == 0 || c.StartTime < time.Now().UnixMilli() && !c.Expired()
 }
+
+func (c *Challenge) IsSolvedBy(team *Team, s *Store) bool {
+	var count int64
+	s.db.Model(Flag{}).Where("team_id = ? AND challenge_id = ? AND state >= 1", team.ID, c.ID).Count(&count)
+	return count > 0
+}

@@ -50,6 +50,10 @@ func CreateChallengeContainer(c echo.Context) error {
 		return Failed(&c, "You are not in a team.")
 	}
 
+	if challenge.IsSolvedBy(team, ctx.Store) {
+		return Failed(&c, "You have solved this challenge.")
+	}
+
 	flag := fmt.Sprintf("%s{%s}", challenge.Game.FlagPrefix, util.GenerateFlagContent(challenge.FlagFormat, user.UUID))
 
 	if !ctx.Store.CanCreateContainer(user) {
