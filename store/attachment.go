@@ -18,4 +18,46 @@ import "gorm.io/gorm"
 
 type Attachment struct {
 	gorm.Model
+	UUID string `json:"uuid"`
+	Name string `json:"name"`
+
+	// If the attachment is multiple, we will distribute it depending on the user's hash
+	Multiple     bool   `json:"multiple" priv:"2"`
+	SavePath     string `json:"save_path" priv:"2"`
+	DownloadName string `json:"download_name"`
+
+	// If the attachment is a flag, we will store the flag
+	Flag string `json:"flag" priv:"2"`
+
+	ChallengeID uint       `json:"challenge_id" priv:"2"`
+	Challenge   *Challenge `json:"challenge" gorm:"foreignKey:ChallengeID" priv:"2"`
+
+	UploaderID uint  `json:"uploader_id" priv:"2"`
+	Uploader   *User `json:"uploader" gorm:"foreignKey:UploaderID" priv:"2"`
+}
+
+func (s *Store) CreateAttachment(a *Attachment) error {
+	return s.db.Create(a).Error
+}
+
+func (s *Store) GetAttachmentByUUID(uuid string) (*Attachment, error) {
+	var attachment Attachment
+	err := s.db.Where("uuid = ?", uuid).First(&attachment).Error
+	return &attachment, err
+}
+
+func (s *Store) GetAttachmentsByChallenge(challenge *Challenge) ([]Attachment, error) {
+	var attachments []Attachment
+	err := s.db.Where("challenge_id = ?", challenge.ID).Find(&attachments).Error
+	return attachments, err
+}
+
+func (s *Store) GetAttachmentsByName(name string) ([]Attachment, error) {
+	var attachments []Attachment
+	err := s.db.Where("name = ?", name).Find(&attachments).Error
+	return attachments, err
+}
+
+func (s *Store) DeleteAttachment(attachment *Attachment) error {
+	return s.db.Delete(attachment).Error
 }
