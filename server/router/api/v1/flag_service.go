@@ -27,8 +27,7 @@ import (
 
 type (
 	SubmitFlagPayloads struct {
-		TeamUUID string `json:"team_uuid" validate:"required"`
-		Flag     string `json:"flag" validate:"required"`
+		Flag string `json:"flag" validate:"required"`
 	}
 )
 
@@ -52,7 +51,7 @@ func anticheatCheck(_ *echo.Context, s *store.Store,
 		flag, err := s.GetFlagByChallenge(flag, challenge)
 		if err != nil {
 			slog.Error(fmt.Sprintf("Failed to get flag: %s ", err.Error()))
-			return false, CheatReasonNone
+			return true, CheatReasonNone
 		}
 
 		if flag.Team.ID != team.ID {
@@ -84,7 +83,7 @@ func anticheatCheck(_ *echo.Context, s *store.Store,
 		attachments, err := s.GetAttachmentsByChallenge(challenge)
 		if err != nil {
 			slog.Error(fmt.Sprintf("Failed to get attachments: %s ", err.Error()))
-			return false, CheatReasonNone
+			return true, CheatReasonNone
 		}
 
 		checked := make(map[string]bool)
@@ -203,7 +202,7 @@ func SubmitFlag(c echo.Context) error {
 			Team:      team,
 			Flag:      challenge.FlagFormat,
 			State:     store.FlagUnsolved,
-			SolvedAt:  time.Now().Unix(),
+			SolvedAt:  time.Now().UnixMilli(),
 		}
 
 		ctx.Store.CreateFlag(&f)
@@ -241,7 +240,7 @@ func SubmitFlag(c echo.Context) error {
 			storedFlag.State = store.FlagSolved
 		}
 
-		storedFlag.SolvedAt = time.Now().Unix()
+		storedFlag.SolvedAt = time.Now().UnixMilli()
 
 		ctx.Store.UpdateFlag(storedFlag)
 	} else {
