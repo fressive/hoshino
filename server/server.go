@@ -129,6 +129,12 @@ func registerRouter(s *Server) {
 	containerApi.POST("/create", v1.CreateChallengeContainer).Name = "create-container"
 	containerApi.POST("/dispose", v1.DisposeChallengeContainer).Name = "dispose-container"
 
+	// Attachment APIs
+	attachmentApi := challengeApi.Group("/:challenge_uuid/attachment")
+	attachmentApi.POST("/", v1.UploadAttachment).Name = "upload-attachment"
+	attachmentApi.GET("/:attachment_uuid", v1.GetAttachment).Name = "get-attachment"
+	attachmentApi.GET("/", v1.GetAttachmentList).Name = "get-attachments"
+
 	// Health check
 	e.GET("/health", router.HealthService)
 }
