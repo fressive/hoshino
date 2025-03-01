@@ -126,8 +126,9 @@ func registerRouter(s *Server) {
 
 	// Container APIs
 	containerApi := challengeApi.Group("/:challenge_uuid/container")
-	containerApi.POST("/create", v1.CreateChallengeContainer).Name = "create-container"
-	containerApi.POST("/dispose", v1.DisposeChallengeContainer).Name = "dispose-container"
+	containerApi.POST("", v1.CreateChallengeContainer).Name = "create-container"
+	containerApi.DELETE("", v1.DisposeChallengeContainer).Name = "dispose-container"
+	containerApi.GET("", v1.GetChallengeRunningContainer).Name = "get-container"
 
 	// Attachment APIs
 	attachmentApi := challengeApi.Group("/:challenge_uuid/attachment")
