@@ -53,7 +53,7 @@ func CreateChallengeContainer(c echo.Context) error {
 		return Failed(&c, "You are not in a team.")
 	}
 
-	flag := challenge.Flag
+	flag := challenge.FlagFormat
 	if challenge.DynamicFlag {
 		flag = fmt.Sprintf("%s{%s}", challenge.Game.FlagPrefix, uuid.New().String())
 	}

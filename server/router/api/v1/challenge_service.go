@@ -26,9 +26,9 @@ type CreateChallengePayload struct {
 	Description         string   `json:"description" validate:"required"`
 	Category            string   `json:"category" validate:"required"`
 	Tags                []string `json:"tags"`
+	StartTime           int64    `json:"start_time" validate:"required"`
 	ExpireTime          int64    `json:"expire_time" validate:"required"`
 	AfterExpiredOptions int32    `json:"after_expired_options" validate:"required"`
-	Attachments         []string `json:"attachments"`
 
 	Image                   string `json:"image"`
 	MemoryLimit             string `json:"memory_limit"`
@@ -38,13 +38,14 @@ type CreateChallengePayload struct {
 	RegistryAccessTokenUUID string `json:"registry_access_token"`
 
 	NoContainer  bool     `json:"no_container"`
-	DynamicFlag  bool     `json:"dynamic_flag"`
-	Flag         string   `json:"flag"`
 	Score        int      `json:"score"`
-	ScoreMode    int      `json:"score_mode"`
+	Difficulty   float32  `json:"difficulty"`
 	ScoreFormula string   `json:"score_formula"`
-	FakeFlag     []string `json:"fake_flag"`
 	Hints        []string `json:"hints"`
+
+	DynamicFlag bool     `json:"dynamic_flag"`
+	FlagFormat  string   `json:"flag_format"`
+	FakeFlag    []string `json:"fake_flag"`
 }
 
 func CreateChallenge(c echo.Context) error {
@@ -77,8 +78,10 @@ func CreateChallenge(c echo.Context) error {
 		Creator:                user,
 		Category:               payload.Category,
 		Tags:                   payload.Tags,
+		StartTime:              payload.StartTime,
 		ExpireTime:             payload.ExpireTime,
 		AfterExpiredOperations: store.AfterExpireOp(payload.AfterExpiredOptions),
+
 		Image: &store.Image{
 			Name:                    payload.Image,
 			MemoryLimit:             payload.MemoryLimit,
@@ -86,15 +89,16 @@ func CreateChallenge(c echo.Context) error {
 			RegistryAccessTokenUUID: payload.RegistryAccessTokenUUID,
 			ExposedPort:             payload.ExposedPort,
 		},
-		ExposedPort:  payload.ExposedPort,
+
 		NoContainer:  payload.NoContainer,
-		DynamicFlag:  payload.DynamicFlag,
-		Flag:         payload.Flag,
 		Score:        payload.Score,
-		ScoreMode:    store.ScoreMode(payload.ScoreMode),
+		Difficulty:   payload.Difficulty,
 		ScoreFormula: payload.ScoreFormula,
-		FakeFlag:     payload.FakeFlag,
 		Hints:        payload.Hints,
+
+		DynamicFlag: payload.DynamicFlag,
+		FlagFormat:  payload.FlagFormat,
+		FakeFlag:    payload.FakeFlag,
 	}
 
 	ctx.Store.CreateChallenge(challenge)

@@ -38,17 +38,6 @@ const (
 	AfterExpireScore
 )
 
-type ScoreMode int
-
-const (
-	ScoreModeStatic ScoreMode = iota
-	// The score is static
-	ScoreModeDynamic
-	// The score is caculated by the number of total successful submissions
-	ScoreModeOrdered
-	// The score is caculated by the order of the submission
-)
-
 type Challenge struct {
 	gorm.Model `json:"-"`
 
@@ -73,9 +62,6 @@ type Challenge struct {
 	CreatorID uint  `json:"-"`
 	Creator   *User `gorm:"foreignKey:CreatorID" json:"creator"`
 
-	// Attachments of the challenge
-	Attachments []*Attachment `gorm:"many2many:challenge_attachments;" json:"attachments"`
-
 	// Tags of the challenge
 	Tags types.StringArray `gorm:"type:text" json:"tags"`
 
@@ -93,10 +79,7 @@ type Challenge struct {
 
 	// Image of the challenge
 	ImageID uint   `json:"-"`
-	Image   *Image `gorm:"foreignKey:ImageID" json:"image"`
-
-	// Exposed port of the challenge
-	ExposedPort int `gorm:"default:0" json:"exposed_port"`
+	Image   *Image `gorm:"foreignKey:ImageID" json:"image" priv:"2"`
 
 	// Does the challenge need a container
 	NoContainer bool `gorm:"default:false" json:"no_container"`
@@ -104,20 +87,16 @@ type Challenge struct {
 	// Dynamic flag or not
 	DynamicFlag bool `gorm:"default:false" json:"dynamic_flag" priv:"2"`
 
-	// Flag template of the challenge
-	Flag string `json:"flag" priv:"2"`
+	// FlagFormat template of the challenge
+	FlagFormat string `json:"flag" priv:"2"`
 
 	// Score of the challenge (if not dynamic)
 	Score int `gorm:"default:0" json:"score"`
 
-	// Score mode of the challenge
-	ScoreMode ScoreMode `gorm:"default:0" json:"score_mode"`
+	// Difficulty of the challenge
+	Difficulty float32 `gorm:"default:0" json:"difficulty"`
 
 	// Score caculation formula of the challenge
-	// PS: The score will automatically rounded
-	//
-	// Parameters:
-	// original_score, solved_count, order
 	ScoreFormula string `gorm:"type:text" json:"score_formula" priv:"2"`
 
 	// Fake flags of the challenge
@@ -153,4 +132,8 @@ func (s *Store) GetChallengeByUUID(uuid string) (*Challenge, error) {
 
 func (c *Challenge) Expired() bool {
 	return c.ExpireTime != 0 && c.ExpireTime < time.Now().Unix()
+}
+
+func (c *Challenge) Ongoing() bool {
+	return c.StartTime == 0 || c.StartTime < time.Now().Unix() && !c.Expired()
 }
