@@ -40,3 +40,10 @@ func TestGenerateRandomText(t *testing.T) {
 	randomText := GenerateRandomText(length)
 	assert.Equal(t, length, int32(len(randomText)), "length should be equal to the specified length")
 }
+
+func TestSHA256Uint64(t *testing.T) {
+	seedToInt := SHA256Uint64("takanashi_hoshino_is_super_kawaii")
+	assert.Equal(t, uint64(0xa649edaea14f0f0), seedToInt, "they should be equal")
+	seedToInt2 := SHA256Uint64("takanashi_hoshino_is_super_kawaii222")
+	assert.NotEqual(t, seedToInt, seedToInt2, "they should not be equal")
+}

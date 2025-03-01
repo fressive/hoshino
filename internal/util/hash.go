@@ -17,6 +17,7 @@ package util
 import (
 	"crypto/sha256"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,6 +33,11 @@ func SHA256(secret string) string {
 	h := sha256.New()
 	h.Write([]byte(secret))
 	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func SHA256Uint64(secret string) uint64 {
+	res, _ := strconv.ParseUint(SHA256(secret)[:16], 16, 64)
+	return res
 }
 
 func SHA256WithSalt(secret string, salt string) string {
