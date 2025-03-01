@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"rina.icu/hoshino/internal/util"
 	"rina.icu/hoshino/server/context"
 	"rina.icu/hoshino/store"
 )
@@ -78,6 +79,54 @@ func anticheatCheck(_ *echo.Context, s *store.Store,
 
 			s.CreateGameEvent(&event)
 			return false, CheatReasonSharingFlag
+		}
+	} else {
+		attachments, err := s.GetAttachmentsByChallenge(challenge)
+		if err != nil {
+			slog.Error(fmt.Sprintf("Failed to get attachments: %s ", err.Error()))
+			return false, CheatReasonNone
+		}
+
+		checked := make(map[string]bool)
+		for _, attachment := range attachments {
+			if checked[attachment.Name] {
+				continue
+			}
+
+			if attachment.Multiple {
+				ma, _ := s.GetAttachmentsByName(attachment.Name)
+				index := util.SHA256Uint64(team.UUID+challenge.UUID+attachment.Name) % uint64(len(ma))
+				for i, a := range ma {
+					if a.Flag == flag && i == int(index) {
+						return true, CheatReasonNone
+					}
+
+					if a.Flag == flag {
+						event := store.GameEvent{
+							Content:      fmt.Sprintf("Team `%s` submitted a fake flag `%s`", team.Name, flag),
+							Game:         challenge.Game,
+							Challenge:    challenge,
+							RelatedTeams: []*store.Team{team},
+							Visibility:   true,
+							Type:         store.GameEventTypeCheatDetected,
+						}
+
+						if challenge.Game.AutoBan {
+							// ban the team instantly
+							team.Banned = true
+							s.UpdateTeam(team)
+						} else {
+							// log the cheat silently
+							event.Visibility = false
+						}
+
+						s.CreateGameEvent(&event)
+						return false, CheatReasonFakeFlag
+					}
+				}
+			}
+
+			checked[attachment.Name] = true
 		}
 	}
 
@@ -152,7 +201,7 @@ func SubmitFlag(c echo.Context) error {
 		f := store.Flag{
 			Challenge: challenge,
 			Team:      team,
-			Flag:      challenge.Flag,
+			Flag:      challenge.FlagFormat,
 			State:     store.FlagUnsolved,
 			SolvedAt:  time.Now().Unix(),
 		}
@@ -194,13 +243,6 @@ func SubmitFlag(c echo.Context) error {
 
 		storedFlag.SolvedAt = time.Now().Unix()
 
-		// TODO: calculate the score of the flag for some game modes
-		if !storedFlag.Challenge.Expired() {
-			if storedFlag.Challenge.ScoreMode == store.ScoreModeStatic {
-				// only set the score when the flag is static
-
-			}
-		}
 		ctx.Store.UpdateFlag(storedFlag)
 	} else {
 		ctx.Store.UpdateFlag(storedFlag)
