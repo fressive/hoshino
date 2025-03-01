@@ -35,7 +35,7 @@ func InitContainerCron(s *store.Store, cm *k8s.ContainerManager) {
 		}
 
 		for _, container := range expiredContainers {
-			if err := cm.DisposeChallengeContainer(container.Challenge, container.Creator); err != nil {
+			if err := cm.DisposeContainer(container.Identifier); err != nil {
 				slog.Error("Failed to delete container: " + err.Error())
 			}
 

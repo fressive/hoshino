@@ -41,6 +41,7 @@ type Container struct {
 	Status           ContainerStatus `gorm:"default:0" json:"status"`
 	ExpireTime       int64           `gorm:"default:0" json:"expire_time"`
 	LeftRenewalTimes int             `gorm:"default:0" json:"left_renewal_times"`
+	Identifier       string          `json:"identifier"`
 }
 
 func (s *Store) CanCreateContainer(user *User) bool {
@@ -63,6 +64,12 @@ func (s *Store) CreateContainer(c *Container) error {
 func (s *Store) GetContainerByUUID(uuid string) (*Container, error) {
 	var c Container
 	err := s.db.Where("uuid = ?", uuid).First(&c).Error
+	return &c, err
+}
+
+func (s *Store) GetContainerByIdentifier(identifier string) (*Container, error) {
+	var c Container
+	err := s.db.Where("identifier = ?", identifier).First(&c).Error
 	return &c, err
 }
 

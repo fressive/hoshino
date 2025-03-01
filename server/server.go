@@ -119,13 +119,15 @@ func registerRouter(s *Server) {
 	challengeApi.GET("", v1.GetFullChallenges).Name = "get-challenges"
 	challengeApi.GET("/:challenge_uuid", v1.GetFullChallenge).Name = "get-challenge"
 	challengeApi.POST("/create", v1.CreateChallenge).Name = "create-challenge"
+	challengeApi.POST("/create/container", v1.CreateContainer).Name = "create-test-container"
+	challengeApi.DELETE("/create/container/:container_uuid", v1.DisposeContainer).Name = "dispose-test-container"
 	challengeApi.POST("/:challenge_uuid/flag", v1.SubmitFlag).Name = "submit-flag"
-	challengeApi.POST("/:challenge_uuid/container/create", v1.CreateContainer).Name = "create-challenge-container"
+	challengeApi.POST("/:challenge_uuid/container/create", v1.CreateChallengeContainer).Name = "create-challenge-container"
 
 	// Container APIs
 	containerApi := challengeApi.Group("/:challenge_uuid/container")
-	containerApi.POST("/create", v1.CreateContainer).Name = "create-container"
-	containerApi.POST("/dispose", v1.DisposeContainer).Name = "dispose-container"
+	containerApi.POST("/create", v1.CreateChallengeContainer).Name = "create-container"
+	containerApi.POST("/dispose", v1.DisposeChallengeContainer).Name = "dispose-container"
 
 	// Health check
 	e.GET("/health", router.HealthService)

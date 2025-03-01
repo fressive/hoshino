@@ -24,11 +24,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/cast"
+	"rina.icu/hoshino/internal/k8s"
+	"rina.icu/hoshino/internal/util"
 	"rina.icu/hoshino/server/context"
 	"rina.icu/hoshino/store"
 )
 
-func CreateContainer(c echo.Context) error {
+func CreateChallengeContainer(c echo.Context) error {
 	ctx := c.(*context.CustomContext)
 
 	challenge, err := ctx.Store.GetChallengeByUUID(c.Param("challenge_uuid"))
@@ -62,7 +64,7 @@ func CreateContainer(c echo.Context) error {
 
 	slog.Info("Creating container for challenge %s", slog.Any("challenge", challenge))
 
-	uuid, err := ctx.ContainerManager.CreateChallengeContainer(challenge, user, flag, ctx.Store)
+	uuid, nodeDomain, err := ctx.ContainerManager.CreateChallengeContainer(challenge, user, flag, ctx.Store)
 	containerModel := &store.Container{
 		Creator:          user,
 		Challenge:        challenge,
@@ -70,6 +72,7 @@ func CreateContainer(c echo.Context) error {
 		Status:           store.ContainerStatusRunning,
 		ExpireTime:       time.Now().Unix() + cast.ToInt64(ctx.Store.GetSettingInt("container_expire_time")),
 		LeftRenewalTimes: ctx.Store.GetSettingInt("max_container_renewal_times"),
+		Identifier:       challenge.UUID + user.UUID,
 	}
 
 	flagModel := &store.Flag{
@@ -88,12 +91,12 @@ func CreateContainer(c echo.Context) error {
 
 	return OKWithData(&c, map[string]interface{}{
 		"uuid":     uuid,
-		"entrance": fmt.Sprintf("%s.%s", uuid, ctx.Store.GetSettingString("node_domain")),
+		"entrance": fmt.Sprintf("%s.%s", uuid, nodeDomain),
 		"expire":   containerModel.ExpireTime,
 	})
 }
 
-func DisposeContainer(c echo.Context) error {
+func DisposeChallengeContainer(c echo.Context) error {
 	ctx := c.(*context.CustomContext)
 
 	challenge, err := ctx.Store.GetChallengeByUUID(c.Param("challenge_uuid"))
@@ -118,6 +121,85 @@ func DisposeContainer(c echo.Context) error {
 	}
 
 	ctx.ContainerManager.DisposeChallengeContainer(challenge, user)
+	container.Status = store.ContainerStatusStopped
+	ctx.Store.UpdateContainer(container)
+
+	return OK(&c)
+}
+
+func CreateContainer(c echo.Context) error {
+	ctx := c.(*context.CustomContext)
+
+	user, _ := GetUserFromToken(&c)
+	game, _ := ctx.Store.GetGameByUUID(c.Param("game_uuid"))
+
+	if user.Privilege < store.UserPrivilegeAdministrator && !game.IsManager(user) {
+		return PermissionDenied(&c)
+	}
+
+	payload := new(k8s.ContainerCreatePayload)
+	if err := c.Bind(payload); err != nil {
+		return Failed(&c, "Bad request")
+	}
+
+	identifier := "test-" + util.SHA256(util.UUID())[:16]
+
+	flag := fmt.Sprintf("%s{%s}", game.FlagPrefix, util.GenerateFlagContent(c.QueryParams().Get("flag_format"), user.UUID))
+	// this is a test container, so we don't need to create the flag model
+
+	info := &k8s.ContainerInfo{
+		Identifier: identifier,
+		Labels: map[string]string{
+			"test": "true",
+			"game": game.UUID,
+			"user": user.UUID,
+		},
+		Flag: flag,
+	}
+
+	uuid, nodeDomain, err := ctx.ContainerManager.CreateContainer(payload, info, ctx.Store)
+
+	if err != nil {
+		return Failed(&c, "Unable to create container.")
+	}
+
+	container := &store.Container{
+		Creator:          user,
+		UUID:             uuid,
+		Status:           store.ContainerStatusRunning,
+		ExpireTime:       time.Now().Unix() + cast.ToInt64(ctx.Store.GetSettingInt("container_expire_time")),
+		LeftRenewalTimes: ctx.Store.GetSettingInt("max_container_renewal_times"),
+		Identifier:       identifier,
+	}
+
+	ctx.Store.CreateContainer(container)
+
+	return OKWithData(&c, map[string]interface{}{
+		"identifier": identifier,
+		"uuid":       uuid,
+		"entrance":   fmt.Sprintf("%s.%s", uuid, nodeDomain),
+		"flag":       flag,
+	})
+}
+
+func DisposeContainer(c echo.Context) error {
+	ctx := c.(*context.CustomContext)
+
+	user, _ := GetUserFromToken(&c)
+	game, _ := ctx.Store.GetGameByUUID(c.Param("game_uuid"))
+
+	if user.Privilege < store.UserPrivilegeAdministrator && !game.IsManager(user) {
+		return PermissionDenied(&c)
+	}
+
+	container, err := ctx.Store.GetContainerByUUID(c.Param("container_uuid"))
+
+	if err != nil {
+		return Failed(&c, "Unable to fetch container")
+	}
+
+	ctx.ContainerManager.DisposeContainer(container.Identifier)
+
 	container.Status = store.ContainerStatusStopped
 	ctx.Store.UpdateContainer(container)
 

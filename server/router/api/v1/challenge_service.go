@@ -24,11 +24,11 @@ import (
 type CreateChallengePayload struct {
 	Name                string   `json:"name" validate:"required"`
 	Description         string   `json:"description" validate:"required"`
-	Attachments         []string `json:"attachments"`
 	Category            string   `json:"category" validate:"required"`
 	Tags                []string `json:"tags"`
 	ExpireTime          int64    `json:"expire_time" validate:"required"`
 	AfterExpiredOptions int32    `json:"after_expired_options" validate:"required"`
+	Attachments         []string `json:"attachments"`
 
 	Image                   string `json:"image"`
 	MemoryLimit             string `json:"memory_limit"`

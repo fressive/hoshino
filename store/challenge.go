@@ -35,6 +35,7 @@ const (
 	AfterExpireDisableAll AfterExpireOp = iota
 	AfterExpireCreateContainer
 	AfterExpireSubmitFlag
+	AfterExpireScore
 )
 
 type ScoreMode int
@@ -116,7 +117,7 @@ type Challenge struct {
 	// PS: The score will automatically rounded
 	//
 	// Parameters:
-	// original_score, solved_count, solved_order
+	// original_score, solved_count, order
 	ScoreFormula string `gorm:"type:text" json:"score_formula" priv:"2"`
 
 	// Fake flags of the challenge
