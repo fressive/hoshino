@@ -143,3 +143,15 @@ func (c *Challenge) IsSolvedBy(team *Team, s *Store) bool {
 	s.db.Model(Flag{}).Where("team_id = ? AND challenge_id = ? AND state >= 1", team.ID, c.ID).Count(&count)
 	return count > 0
 }
+
+func (c *Challenge) GetScore(team *Team, s *Store) int {
+	var score int
+	s.db.Model(Flag{}).Where("team_id = ? AND challenge_id = ? AND state >= 1", team.ID, c.ID).Select("score").First(&score)
+	return score
+}
+
+func (c *Challenge) GetSolvedCount(s *Store) int {
+	var count int64
+	s.db.Model(Flag{}).Where("challenge_id = ? AND state >= 1", c.ID).Count(&count)
+	return int(count)
+}

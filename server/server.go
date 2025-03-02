@@ -112,6 +112,7 @@ func registerRouter(s *Server) {
 	// teamApi.GET("", v1.GetTeams).Name = "get-teams"
 	// teamApi.GET("/:uuid", v1.GetTeam).Name = "get-team"
 	teamApi.POST("/create", v1.CreateTeam).Name = "create-team"
+	teamApi.GET("/score", v1.GetTeamScore).Name = "get-team-score"
 	// teamApi.POST("/:uuid/ban", v1.BanTeam).Name = "ban-team"
 
 	// Challenge APIs
@@ -122,7 +123,7 @@ func registerRouter(s *Server) {
 	challengeApi.POST("/create/container", v1.CreateContainer).Name = "create-test-container"
 	challengeApi.DELETE("/create/container/:container_uuid", v1.DisposeContainer).Name = "dispose-test-container"
 	challengeApi.POST("/:challenge_uuid/flag", v1.SubmitFlag).Name = "submit-flag"
-	challengeApi.POST("/:challenge_uuid/container/create", v1.CreateChallengeContainer).Name = "create-challenge-container"
+	challengeApi.GET("/status", v1.GetChallengeStatus).Name = "get-challenge-status"
 
 	// Container APIs
 	containerApi := challengeApi.Group("/:challenge_uuid/container")
@@ -198,7 +199,7 @@ func NewServer(ctx context.Context, config *config.Config, clientSet *kubernetes
 
 	registerRouter(s)
 
-	// TODO: frontend server register here
+	echoServer.Static("/", "public")
 
 	slog.Info(fmt.Sprintf("Hoshino web server is running on %s:%d.", config.Address, config.Port))
 	return s, nil

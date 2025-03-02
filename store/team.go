@@ -41,7 +41,7 @@ type Team struct {
 
 	// The team is under a game
 	GameID uint  `gorm:"not null" json:"-"`
-	Game   *Game `gorm:"foreignKey:GameID" json:"game"`
+	Game   *Game `gorm:"foreignKey:GameID" json:"-"`
 
 	// Is the team banned
 	Banned bool `gorm:"default:false" json:"banned"`
@@ -115,4 +115,16 @@ func (s *Store) GetTeamByUUID(uuid string) (*Team, error) {
 	var team Team
 	err := s.db.Where("uuid = ?", uuid).First(&team).Error
 	return &team, err
+}
+
+func (t *Team) GetTeamScore(s *Store) int {
+	var score int
+	s.db.Model(Flag{}).Where("team_id = ? AND state >= 1", t.ID).Select("sum(score)").Row().Scan(&score)
+	return score
+}
+
+func (t *Team) GetTeamRank(s *Store) int64 {
+	var rank int64
+	s.db.Model(&Team{}).Where("game_id = ? AND (SELECT sum(score) FROM flags WHERE team_id = teams.id AND state >= 1) > ?", t.GameID, t.GetTeamScore(s)).Count(&rank)
+	return rank + 1
 }

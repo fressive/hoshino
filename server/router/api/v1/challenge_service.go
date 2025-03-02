@@ -137,5 +137,60 @@ func GetFullChallenges(c echo.Context) error {
 		return PermissionDenied(&c)
 	}
 
-	return OKWithData(&c, game.Challenges)
+	challenges := game.Challenges
+	filtered := make([]*store.Challenge, 0)
+	for _, challenge := range challenges {
+		if !game.Visibility && !user.HasPrivilege(store.UserPrivilegeAdministrator) && !game.IsManager(user) {
+			continue
+		}
+		filtered = append(filtered, challenge)
+	}
+
+	return OKWithData(&c, filtered)
+}
+
+func GetChallengeStatus(c echo.Context) error {
+	ctx := c.(*context.CustomContext)
+	user, _ := GetUserFromToken(&c)
+
+	game_uuid := ctx.Param("game_uuid")
+	game, err := ctx.Store.GetGameByUUID(game_uuid)
+	if err != nil {
+		return Failed(&c, "Unable to fetch game")
+	}
+
+	if !game.Visibility && !user.HasPrivilege(store.UserPrivilegeAdministrator) && !game.IsManager(user) {
+		return PermissionDenied(&c)
+	}
+
+	challenges := game.Challenges
+	filtered := make([]*store.Challenge, 0)
+	for _, challenge := range challenges {
+		if !game.Visibility && !user.HasPrivilege(store.UserPrivilegeAdministrator) && !game.IsManager(user) {
+			continue
+		}
+		filtered = append(filtered, challenge)
+	}
+
+	resp := map[string]any{}
+
+	team := game.GetTeamByUser(ctx.Store, user)
+
+	for _, challenge := range filtered {
+		if challenge.IsSolvedBy(team, ctx.Store) {
+			resp[challenge.UUID] = map[string]any{
+				"solved":       true,
+				"score":        challenge.GetScore(team, ctx.Store),
+				"solved_count": challenge.GetSolvedCount(ctx.Store),
+			}
+		} else {
+			resp[challenge.UUID] = map[string]any{
+				"solved":       false,
+				"score":        0,
+				"solved_count": challenge.GetSolvedCount(ctx.Store),
+			}
+		}
+	}
+
+	return OKWithData(&c, resp)
 }

@@ -48,10 +48,7 @@ type Container struct {
 func (s *Store) CanCreateContainer(user *User) bool {
 	var count int64
 
-	s.db.Model(Container{}).Where(&Container{
-		Creator: user,
-		Status:  ContainerStatusRunning,
-	}).Count(&count)
+	s.db.Model(Container{}).Where("creator_id = ? AND status = 1").Count(&count)
 
 	max := s.GetSettingInt("max_container_per_user")
 

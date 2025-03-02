@@ -77,3 +77,24 @@ func CreateTeam(c echo.Context) error {
 		"team_uuid": uuid,
 	})
 }
+
+func GetTeamScore(c echo.Context) error {
+	ctx := c.(*context.CustomContext)
+
+	user, _ := GetUserFromToken(&c)
+	game, err := ctx.Store.GetGameByUUID(ctx.Param("game_uuid"))
+	if err != nil || !(game.Visibility || user.HasPrivilege(store.UserPrivilegeAdministrator) || game.IsManager(user)) {
+		return Failed(&c, "Unable to fetch game")
+	}
+
+	team := game.GetTeamByUser(ctx.Store, user)
+
+	if team == nil {
+		return Failed(&c, "You are not in a team")
+	}
+
+	return OKWithData(&c, map[string]any{
+		"score": team.GetTeamScore(ctx.Store),
+		"rank":  team.GetTeamRank(ctx.Store),
+	})
+}
